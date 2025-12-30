@@ -42,6 +42,9 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             // Load search paths (join with newlines)
             SearchPathsTextBox.Text = string.Join(Environment.NewLine, _settings.SearchPaths);
 
+            // Load ignored directories (join with newlines)
+            IgnoredDirectoriesTextBox.Text = string.Join(Environment.NewLine, _settings.IgnoredDirectories);
+
             // Load max results
             MaxResultsTextBox.Text = _settings.MaxResults.ToString();
         }
@@ -108,6 +111,21 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 ? paths
                 : new List<string> { Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) };
 
+            SaveSettings();
+        }
+
+        private void IgnoredDirectoriesTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isInitializing)
+                return;
+
+            var dirs = IgnoredDirectoriesTextBox.Text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(d => d.Trim())
+                .Where(d => !string.IsNullOrEmpty(d))
+                .ToList();
+
+            _settings.IgnoredDirectories = dirs;
             SaveSettings();
         }
 

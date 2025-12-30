@@ -10,14 +10,14 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         private readonly Settings _settings;
         private readonly PluginInitContext _context;
-        private readonly string _iconPath;
 
-        public ResultBuilder(Settings settings, PluginInitContext context, string iconPath)
+        public ResultBuilder(Settings settings, PluginInitContext context)
         {
             _settings = settings;
             _context = context;
-            _iconPath = iconPath;
         }
+
+        private string IconPath => _settings.GetEditorIconPath();
 
         /// <summary>
         /// Builds Flow Launcher results from search results, filtered by query
@@ -67,7 +67,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 Title = "Everything CLI not found",
                 SubTitle = "Install Everything from voidtools.com and ensure es.exe is in PATH or configured",
-                IcoPath = _iconPath,
+                IcoPath = IconPath,
                 Action = _ =>
                 {
                     Process.Start(new ProcessStartInfo
@@ -125,7 +125,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 Title = title,
                 SubTitle = subTitle,
-                IcoPath = _iconPath,
+                IcoPath = IconPath,
                 Action = _ => OpenInEditor(targetPath),
                 ContextData = searchResult
             };

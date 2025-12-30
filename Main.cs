@@ -9,15 +9,13 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         private Settings _settings;
         private EverythingSearch _search;
         private ResultBuilder _resultBuilder;
-        private string _iconPath;
 
         public void Init(PluginInitContext context)
         {
             _context = context;
             _settings = context.API.LoadSettingJsonStorage<Settings>();
-            _iconPath = "Images\\icon.png";
             _search = new EverythingSearch(_settings);
-            _resultBuilder = new ResultBuilder(_settings, context, _iconPath);
+            _resultBuilder = new ResultBuilder(_settings, context);
         }
 
         public List<Result> Query(Query query)

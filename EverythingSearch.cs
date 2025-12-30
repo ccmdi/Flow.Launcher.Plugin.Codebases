@@ -70,6 +70,10 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 var gitResults = ExecuteSearch(searchPath, "folder:.git");
                 foreach (var gitPath in gitResults)
                 {
+                    // Skip paths containing ignored directories
+                    if (IsInIgnoredDirectory(gitPath))
+                        continue;
+
                     // Get parent directory (repo root)
                     var parentDir = Path.GetDirectoryName(gitPath);
                     if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
@@ -86,6 +90,10 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 var workspaceResults = ExecuteSearch(searchPath, "ext:code-workspace");
                 foreach (var workspacePath in workspaceResults)
                 {
+                    // Skip paths containing ignored directories
+                    if (IsInIgnoredDirectory(workspacePath))
+                        continue;
+
                     if (File.Exists(workspacePath))
                     {
                         results.Add(new SearchResult
@@ -98,6 +106,26 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Checks if a path contains any of the ignored directory names
+        /// </summary>
+        private bool IsInIgnoredDirectory(string path)
+        {
+            if (_settings.IgnoredDirectories == null || _settings.IgnoredDirectories.Count == 0)
+                return false;
+
+            var pathParts = path.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var part in pathParts)
+            {
+                if (_settings.IgnoredDirectories.Contains(part, StringComparer.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private List<string> ExecuteSearch(string searchPath, string query)
