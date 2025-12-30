@@ -77,6 +77,19 @@
         <TextBox x:Name="MaxResultsTextBox"
                  Width="100"
                  HorizontalAlignment="Left"
-                 TextChanged="MaxResultsTextBox_TextChanged"/>
+                 TextChanged="MaxResultsTextBox_TextChanged"
+                 Margin="0,0,0,15"/>
+
+        <!-- Language Cache -->
+        <TextBlock Text="Language Cache" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="Re-detect programming languages for all codebases"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <Button x:Name="RebuildCacheButton"
+                Content="Rebuild Language Cache"
+                Padding="10,5"
+                HorizontalAlignment="Left"
+                Click="RebuildCacheButton_Click"/>
     </StackPanel>
 </UserControl>

@@ -10,6 +10,11 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         public string Path { get; set; }
         public SearchResultType Type { get; set; }
+        public string[] Languages { get; set; } = new[] { Flow.Launcher.Plugin.CodebaseFinder.Languages.Unknown };
+        public string CustomIconPath { get; set; }
+
+        // Helper for primary language (first/most prevalent)
+        public string PrimaryLanguage => Languages?.Length > 0 ? Languages[0] : Flow.Launcher.Plugin.CodebaseFinder.Languages.Unknown;
     }
 
     public enum SearchResultType
@@ -60,6 +65,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         public List<SearchResult> Search()
         {
             var results = new List<SearchResult>();
+            var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var searchPath in _settings.SearchPaths)
             {
@@ -78,10 +84,17 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     var parentDir = Path.GetDirectoryName(gitPath);
                     if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
                     {
+                        // Skip duplicates (can occur with overlapping search paths)
+                        var key = $"git:{parentDir}";
+                        if (seenPaths.Contains(key))
+                            continue;
+                        seenPaths.Add(key);
+
                         results.Add(new SearchResult
                         {
                             Path = parentDir,
-                            Type = SearchResultType.GitRepository
+                            Type = SearchResultType.GitRepository,
+                            CustomIconPath = FindCustomIcon(parentDir)
                         });
                     }
                 }
@@ -96,6 +109,12 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
                     if (File.Exists(workspacePath))
                     {
+                        // Skip duplicates
+                        var key = $"ws:{workspacePath}";
+                        if (seenPaths.Contains(key))
+                            continue;
+                        seenPaths.Add(key);
+
                         results.Add(new SearchResult
                         {
                             Path = workspacePath,
@@ -106,6 +125,36 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Looks for a custom .ico file in the repo root
+        /// </summary>
+        private string FindCustomIcon(string repoPath)
+        {
+            try
+            {
+                // Preferred icon filenames (in order of priority)
+                var preferredNames = new[] { "app.ico", "icon.ico", "favicon.ico", "logo.ico" };
+
+                foreach (var name in preferredNames)
+                {
+                    var iconPath = Path.Combine(repoPath, name);
+                    if (File.Exists(iconPath))
+                        return iconPath;
+                }
+
+                // Fall back to first .ico file found
+                var icoFiles = Directory.GetFiles(repoPath, "*.ico", SearchOption.TopDirectoryOnly);
+                if (icoFiles.Length > 0)
+                    return icoFiles[0];
+            }
+            catch
+            {
+                // Silently fail - no custom icon
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -134,10 +183,11 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
             try
             {
+                // Sort by date modified descending for recency bias
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = _settings.EsExePath,
-                    Arguments = $"-path \"{searchPath}\" {query}",
+                    Arguments = $"-path \"{searchPath}\" -sort dm -sort-descending {query}",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Flow.Launcher.Plugin.CodebaseFinder
 {
@@ -10,6 +11,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         private readonly Settings _settings;
         private readonly PluginInitContext _context;
+        private static readonly Regex LangFilterRegex = new Regex(@"\blang:(\w+)\b", RegexOptions.IgnoreCase);
 
         public ResultBuilder(Settings settings, PluginInitContext context)
         {
@@ -17,24 +19,46 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             _context = context;
         }
 
-        private string IconPath => _settings.GetEditorIconPath();
+        private string EditorIconPath => _settings.GetEditorIconPath();
 
         /// <summary>
         /// Builds Flow Launcher results from search results, filtered by query
+        /// Supports lang:xyz filter (e.g., "code lang:rust myproject")
         /// </summary>
         public List<Result> Build(List<SearchResult> searchResults, string query)
         {
             var results = new List<Result>();
 
+            // Parse language filter from query
+            string languageFilter = null;
+            var searchQuery = query ?? "";
+
+            var langMatch = LangFilterRegex.Match(searchQuery);
+            if (langMatch.Success)
+            {
+                languageFilter = langMatch.Groups[1].Value;
+                // Remove the lang: filter from the search query
+                searchQuery = LangFilterRegex.Replace(searchQuery, "").Trim();
+            }
+
             foreach (var searchResult in searchResults)
             {
+                // Apply language filter if specified - check all languages in the array
+                if (!string.IsNullOrEmpty(languageFilter))
+                {
+                    var matchesFilter = searchResult.Languages.Any(lang =>
+                        lang.Contains(languageFilter, StringComparison.OrdinalIgnoreCase));
+                    if (!matchesFilter)
+                        continue;
+                }
+
                 var result = CreateResult(searchResult);
                 if (result != null)
                 {
-                    // Calculate match score based on query
-                    if (!string.IsNullOrWhiteSpace(query))
+                    // Calculate match score based on remaining query (after lang: removed)
+                    if (!string.IsNullOrWhiteSpace(searchQuery))
                     {
-                        var matchResult = _context.API.FuzzySearch(query, result.Title);
+                        var matchResult = _context.API.FuzzySearch(searchQuery, result.Title);
                         if (matchResult.IsSearchPrecisionScoreMet())
                         {
                             result.Score = matchResult.Score;
@@ -44,16 +68,24 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     }
                     else
                     {
-                        // No query - return all results
+                        // No text query - return all results (that passed lang filter)
                         results.Add(result);
                     }
                 }
             }
 
-            // Sort by score descending, then by title
+            // When querying, sort by score; otherwise preserve recency order from Everything
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                return results
+                    .OrderByDescending(r => r.Score)
+                    .ThenBy(r => r.Title)
+                    .Take(_settings.MaxResults)
+                    .ToList();
+            }
+
+            // No query - keep recency order (already sorted by date modified from Everything)
             return results
-                .OrderByDescending(r => r.Score)
-                .ThenBy(r => r.Title)
                 .Take(_settings.MaxResults)
                 .ToList();
         }
@@ -67,7 +99,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 Title = "Everything CLI not found",
                 SubTitle = "Install Everything from voidtools.com and ensure es.exe is in PATH or configured",
-                IcoPath = IconPath,
+                IcoPath = EditorIconPath,
                 Action = _ =>
                 {
                     Process.Start(new ProcessStartInfo
@@ -91,7 +123,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 SubTitle = string.IsNullOrWhiteSpace(query)
                     ? "No .git folders or .code-workspace files found in search paths"
                     : $"No codebases matching '{query}'",
-                IcoPath = _iconPath
+                IcoPath = EditorIconPath
             };
         }
 
@@ -100,14 +132,25 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             string title;
             string subTitle;
             string targetPath;
+            string iconPath;
 
             switch (searchResult.Type)
             {
                 case SearchResultType.GitRepository:
                     // For git repos, title is folder name, path is to folder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
-                    subTitle = searchResult.Path;
                     targetPath = searchResult.Path;
+                    // Show all languages in subtitle if known
+                    var langDisplay = searchResult.PrimaryLanguage != Languages.Unknown
+                        ? string.Join(", ", searchResult.Languages)
+                        : null;
+                    subTitle = langDisplay != null
+                        ? $"{searchResult.Path} • {langDisplay}"
+                        : searchResult.Path;
+                    // Use custom icon if available, otherwise primary language icon
+                    iconPath = !string.IsNullOrEmpty(searchResult.CustomIconPath)
+                        ? searchResult.CustomIconPath
+                        : LanguageDetector.GetIconPath(searchResult.PrimaryLanguage);
                     break;
 
                 case SearchResultType.CodeWorkspace:
@@ -115,6 +158,8 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
                     subTitle = searchResult.Path;
                     targetPath = searchResult.Path;
+                    // Use editor icon for workspaces
+                    iconPath = EditorIconPath;
                     break;
 
                 default:
@@ -125,7 +170,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 Title = title,
                 SubTitle = subTitle,
-                IcoPath = IconPath,
+                IcoPath = iconPath,
                 Action = _ => OpenInEditor(targetPath),
                 ContextData = searchResult
             };
