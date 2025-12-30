@@ -1,0 +1,68 @@
+<UserControl x:Class="Flow.Launcher.Plugin.CodebaseFinder.SettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="350" d:DesignWidth="400"
+             Padding="10">
+    <StackPanel>
+        <!-- Editor Selection -->
+        <TextBlock Text="Editor" FontWeight="Bold" Margin="0,0,0,5"/>
+        <ComboBox x:Name="EditorComboBox"
+                  Width="200"
+                  HorizontalAlignment="Left"
+                  SelectionChanged="EditorComboBox_SelectionChanged"
+                  Margin="0,0,0,15">
+            <ComboBoxItem Content="Cursor" Tag="Cursor"/>
+            <ComboBoxItem Content="VS Code" Tag="VSCode"/>
+        </ComboBox>
+
+        <!-- es.exe Path -->
+        <TextBlock Text="Everything CLI Path (es.exe)" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="Leave as 'es.exe' if it's in your PATH"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <Grid Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="EsExePathTextBox"
+                     Grid.Column="0"
+                     TextChanged="EsExePathTextBox_TextChanged"/>
+            <Button x:Name="BrowseEsExeButton"
+                    Grid.Column="1"
+                    Content="Browse..."
+                    Padding="10,5"
+                    Margin="5,0,0,0"
+                    Click="BrowseEsExeButton_Click"/>
+        </Grid>
+
+        <!-- Search Paths -->
+        <TextBlock Text="Search Paths" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="Directories to search for codebases (one per line)"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <TextBox x:Name="SearchPathsTextBox"
+                 Height="100"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 TextChanged="SearchPathsTextBox_TextChanged"
+                 Margin="0,0,0,15"/>
+
+        <!-- Max Results -->
+        <TextBlock Text="Maximum Results" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="Maximum number of results to show when query is empty"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <TextBox x:Name="MaxResultsTextBox"
+                 Width="100"
+                 HorizontalAlignment="Left"
+                 TextChanged="MaxResultsTextBox_TextChanged"/>
+    </StackPanel>
+</UserControl>
