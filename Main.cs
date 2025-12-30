@@ -82,15 +82,15 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 if (result.Type == SearchResultType.GitRepository)
                 {
-                    var cachedLanguage = _languageCache.GetLanguage(result.Path);
-                    if (cachedLanguage != Languages.Unknown)
+                    var cachedLanguages = _languageCache.GetLanguages(result.Path);
+                    if (cachedLanguages.Length > 0 && cachedLanguages[0] != Languages.Unknown)
                     {
-                        result.Language = cachedLanguage;
+                        result.Languages = cachedLanguages;
                     }
                     else if (_languageCache.IsStale(result.Path))
                     {
                         // Detect synchronously for uncached repos (first time)
-                        result.Language = _languageCache.DetectAndCache(result.Path);
+                        result.Languages = _languageCache.DetectAndCache(result.Path);
                     }
                 }
             }
@@ -122,16 +122,17 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 contextMenus.Add(new Result
                 {
                     Title = "Rebuild language cache",
-                    SubTitle = $"Re-detect language for {Path.GetFileName(searchResult.Path)}",
-                    IcoPath = LanguageDetector.GetIconPath(searchResult.Language),
+                    SubTitle = $"Re-detect languages for {Path.GetFileName(searchResult.Path)}",
+                    IcoPath = LanguageDetector.GetIconPath(searchResult.PrimaryLanguage),
                     Action = _ =>
                     {
                         Task.Run(() =>
                         {
-                            var newLanguage = _languageCache.ForceRebuild(searchResult.Path);
+                            var newLanguages = _languageCache.ForceRebuild(searchResult.Path);
+                            var langDisplay = string.Join(", ", newLanguages);
                             _context.API.ShowMsg("Language Cache",
-                                $"Detected: {newLanguage}",
-                                LanguageDetector.GetIconPath(newLanguage));
+                                $"Detected: {langDisplay}",
+                                LanguageDetector.GetIconPath(newLanguages[0]));
                         });
                         return true;
                     }

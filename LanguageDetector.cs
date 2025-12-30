@@ -123,13 +123,16 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 StringComparer.OrdinalIgnoreCase);
         }
 
+        private const double MinLanguageThreshold = 0.20; // 20% threshold
+
         /// <summary>
-        /// Detects the primary language of a repository by counting file extensions
+        /// Detects languages in a repository that make up at least 20% of the codebase
+        /// Returns array sorted by prevalence (most common first)
         /// </summary>
-        public string Detect(string repoPath)
+        public string[] Detect(string repoPath)
         {
             if (!Directory.Exists(repoPath))
-                return Languages.Unknown;
+                return new[] { Languages.Unknown };
 
             try
             {
@@ -139,17 +142,24 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 ScanDirectory(repoPath, languageCounts, ref filesScanned);
 
                 if (languageCounts.Count == 0)
-                    return Languages.Unknown;
+                    return new[] { Languages.Unknown };
 
-                // Return the language with the highest file count
-                return languageCounts
+                var totalFiles = languageCounts.Values.Sum();
+
+                // Return all languages that make up at least 20% of the codebase
+                var significantLanguages = languageCounts
+                    .Where(kvp => (double)kvp.Value / totalFiles >= MinLanguageThreshold)
                     .OrderByDescending(kvp => kvp.Value)
-                    .First()
-                    .Key;
+                    .Select(kvp => kvp.Key)
+                    .ToArray();
+
+                return significantLanguages.Length > 0
+                    ? significantLanguages
+                    : new[] { languageCounts.OrderByDescending(kvp => kvp.Value).First().Key };
             }
             catch
             {
-                return Languages.Unknown;
+                return new[] { Languages.Unknown };
             }
         }
 

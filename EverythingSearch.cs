@@ -10,8 +10,11 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         public string Path { get; set; }
         public SearchResultType Type { get; set; }
-        public string Language { get; set; } = Languages.Unknown;
+        public string[] Languages { get; set; } = new[] { Flow.Launcher.Plugin.CodebaseFinder.Languages.Unknown };
         public string CustomIconPath { get; set; }
+
+        // Helper for primary language (first/most prevalent)
+        public string PrimaryLanguage => Languages?.Length > 0 ? Languages[0] : Flow.Launcher.Plugin.CodebaseFinder.Languages.Unknown;
     }
 
     public enum SearchResultType

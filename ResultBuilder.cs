@@ -43,10 +43,12 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
             foreach (var searchResult in searchResults)
             {
-                // Apply language filter if specified
+                // Apply language filter if specified - check all languages in the array
                 if (!string.IsNullOrEmpty(languageFilter))
                 {
-                    if (!searchResult.Language.Contains(languageFilter, StringComparison.OrdinalIgnoreCase))
+                    var matchesFilter = searchResult.Languages.Any(lang =>
+                        lang.Contains(languageFilter, StringComparison.OrdinalIgnoreCase));
+                    if (!matchesFilter)
                         continue;
                 }
 
@@ -138,14 +140,17 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     // For git repos, title is folder name, path is to folder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
                     targetPath = searchResult.Path;
-                    // Show language in subtitle if known
-                    subTitle = searchResult.Language != Languages.Unknown
-                        ? $"{searchResult.Path} • {searchResult.Language}"
+                    // Show all languages in subtitle if known
+                    var langDisplay = searchResult.PrimaryLanguage != Languages.Unknown
+                        ? string.Join(", ", searchResult.Languages)
+                        : null;
+                    subTitle = langDisplay != null
+                        ? $"{searchResult.Path} • {langDisplay}"
                         : searchResult.Path;
-                    // Use custom icon if available, otherwise language icon
+                    // Use custom icon if available, otherwise primary language icon
                     iconPath = !string.IsNullOrEmpty(searchResult.CustomIconPath)
                         ? searchResult.CustomIconPath
-                        : LanguageDetector.GetIconPath(searchResult.Language);
+                        : LanguageDetector.GetIconPath(searchResult.PrimaryLanguage);
                     break;
 
                 case SearchResultType.CodeWorkspace:

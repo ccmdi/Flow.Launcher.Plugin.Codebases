@@ -11,7 +11,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 {
     public class LanguageCacheEntry
     {
-        public string Language { get; set; } = Languages.Unknown;
+        public string[] Languages { get; set; } = new[] { Flow.Launcher.Plugin.CodebaseFinder.Languages.Unknown };
         public DateTime DetectedAt { get; set; } = DateTime.MinValue;
     }
 
@@ -40,13 +40,13 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         }
 
         /// <summary>
-        /// Gets the cached language for a path, or Unknown if not cached
+        /// Gets the cached languages for a path, or Unknown if not cached
         /// </summary>
-        public string GetLanguage(string path)
+        public string[] GetLanguages(string path)
         {
             if (_cache.TryGetValue(path, out var entry))
-                return entry.Language;
-            return Languages.Unknown;
+                return entry.Languages;
+            return new[] { Languages.Unknown };
         }
 
         /// <summary>
@@ -61,27 +61,27 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         }
 
         /// <summary>
-        /// Detects and caches the language for a path
+        /// Detects and caches languages for a path
         /// </summary>
-        public string DetectAndCache(string path)
+        public string[] DetectAndCache(string path)
         {
             var detector = CreateDetector();
-            var language = detector.Detect(path);
+            var languages = detector.Detect(path);
 
             _cache[path] = new LanguageCacheEntry
             {
-                Language = language,
+                Languages = languages,
                 DetectedAt = DateTime.UtcNow
             };
 
             _isDirty = true;
-            return language;
+            return languages;
         }
 
         /// <summary>
         /// Force rebuilds the cache for a single path
         /// </summary>
-        public string ForceRebuild(string path)
+        public string[] ForceRebuild(string path)
         {
             // Remove existing entry to force re-detection
             _cache.TryRemove(path, out _);
