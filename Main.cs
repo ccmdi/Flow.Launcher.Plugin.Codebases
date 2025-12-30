@@ -116,27 +116,47 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         {
             var contextMenus = new List<Result>();
 
-            if (selectedResult.ContextData is SearchResult searchResult &&
-                searchResult.Type == SearchResultType.GitRepository)
+            if (selectedResult.ContextData is SearchResult searchResult)
             {
+                var folderPath = searchResult.Type == SearchResultType.GitRepository
+                    ? searchResult.Path
+                    : Path.GetDirectoryName(searchResult.Path);
+
+                // Open in File Explorer
                 contextMenus.Add(new Result
                 {
-                    Title = "Rebuild language cache",
-                    SubTitle = $"Re-detect languages for {Path.GetFileName(searchResult.Path)}",
-                    IcoPath = LanguageDetector.GetIconPath(searchResult.PrimaryLanguage),
+                    Title = "Open in File Explorer",
+                    SubTitle = folderPath,
+                    IcoPath = "Images\\folder.png",
                     Action = _ =>
                     {
-                        Task.Run(() =>
-                        {
-                            var newLanguages = _languageCache.ForceRebuild(searchResult.Path);
-                            var langDisplay = string.Join(", ", newLanguages);
-                            _context.API.ShowMsg("Language Cache",
-                                $"Detected: {langDisplay}",
-                                LanguageDetector.GetIconPath(newLanguages[0]));
-                        });
+                        System.Diagnostics.Process.Start("explorer.exe", folderPath);
                         return true;
                     }
                 });
+
+                // Rebuild language cache (only for git repos)
+                if (searchResult.Type == SearchResultType.GitRepository)
+                {
+                    contextMenus.Add(new Result
+                    {
+                        Title = "Rebuild language cache",
+                        SubTitle = $"Re-detect languages for {Path.GetFileName(searchResult.Path)}",
+                        IcoPath = LanguageDetector.GetIconPath(searchResult.PrimaryLanguage),
+                        Action = _ =>
+                        {
+                            Task.Run(() =>
+                            {
+                                var newLanguages = _languageCache.ForceRebuild(searchResult.Path);
+                                var langDisplay = string.Join(", ", newLanguages);
+                                _context.API.ShowMsg("Language Cache",
+                                    $"Detected: {langDisplay}",
+                                    LanguageDetector.GetIconPath(newLanguages[0]));
+                            });
+                            return true;
+                        }
+                    });
+                }
             }
 
             return contextMenus;
