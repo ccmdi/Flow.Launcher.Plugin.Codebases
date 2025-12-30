@@ -11,6 +11,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         public string Path { get; set; }
         public SearchResultType Type { get; set; }
         public string Language { get; set; } = Languages.Unknown;
+        public string CustomIconPath { get; set; }
     }
 
     public enum SearchResultType
@@ -89,7 +90,8 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                         results.Add(new SearchResult
                         {
                             Path = parentDir,
-                            Type = SearchResultType.GitRepository
+                            Type = SearchResultType.GitRepository,
+                            CustomIconPath = FindCustomIcon(parentDir)
                         });
                     }
                 }
@@ -123,6 +125,36 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         }
 
         /// <summary>
+        /// Looks for a custom .ico file in the repo root
+        /// </summary>
+        private string FindCustomIcon(string repoPath)
+        {
+            try
+            {
+                // Preferred icon filenames (in order of priority)
+                var preferredNames = new[] { "app.ico", "icon.ico", "favicon.ico", "logo.ico" };
+
+                foreach (var name in preferredNames)
+                {
+                    var iconPath = Path.Combine(repoPath, name);
+                    if (File.Exists(iconPath))
+                        return iconPath;
+                }
+
+                // Fall back to first .ico file found
+                var icoFiles = Directory.GetFiles(repoPath, "*.ico", SearchOption.TopDirectoryOnly);
+                if (icoFiles.Length > 0)
+                    return icoFiles[0];
+            }
+            catch
+            {
+                // Silently fail - no custom icon
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Checks if a path contains any of the ignored directory names
         /// </summary>
         private bool IsInIgnoredDirectory(string path)
@@ -148,10 +180,11 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
             try
             {
+                // Sort by date modified descending for recency bias
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = _settings.EsExePath,
-                    Arguments = $"-path \"{searchPath}\" {query}",
+                    Arguments = $"-path \"{searchPath}\" -sort dm -sort-descending {query}",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

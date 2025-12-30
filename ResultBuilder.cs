@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Flow.Launcher.Plugin.CodebaseFinder
 {
@@ -10,6 +11,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         private readonly Settings _settings;
         private readonly PluginInitContext _context;
+        private static readonly Regex LangFilterRegex = new Regex(@"\blang:(\w+)\b", RegexOptions.IgnoreCase);
 
         public ResultBuilder(Settings settings, PluginInitContext context)
         {
@@ -21,20 +23,40 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
         /// <summary>
         /// Builds Flow Launcher results from search results, filtered by query
+        /// Supports lang:xyz filter (e.g., "code lang:rust myproject")
         /// </summary>
         public List<Result> Build(List<SearchResult> searchResults, string query)
         {
             var results = new List<Result>();
 
+            // Parse language filter from query
+            string languageFilter = null;
+            var searchQuery = query ?? "";
+
+            var langMatch = LangFilterRegex.Match(searchQuery);
+            if (langMatch.Success)
+            {
+                languageFilter = langMatch.Groups[1].Value;
+                // Remove the lang: filter from the search query
+                searchQuery = LangFilterRegex.Replace(searchQuery, "").Trim();
+            }
+
             foreach (var searchResult in searchResults)
             {
+                // Apply language filter if specified
+                if (!string.IsNullOrEmpty(languageFilter))
+                {
+                    if (!searchResult.Language.Contains(languageFilter, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                }
+
                 var result = CreateResult(searchResult);
                 if (result != null)
                 {
-                    // Calculate match score based on query
-                    if (!string.IsNullOrWhiteSpace(query))
+                    // Calculate match score based on remaining query (after lang: removed)
+                    if (!string.IsNullOrWhiteSpace(searchQuery))
                     {
-                        var matchResult = _context.API.FuzzySearch(query, result.Title);
+                        var matchResult = _context.API.FuzzySearch(searchQuery, result.Title);
                         if (matchResult.IsSearchPrecisionScoreMet())
                         {
                             result.Score = matchResult.Score;
@@ -44,16 +66,24 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     }
                     else
                     {
-                        // No query - return all results
+                        // No text query - return all results (that passed lang filter)
                         results.Add(result);
                     }
                 }
             }
 
-            // Sort by score descending, then by title
+            // When querying, sort by score; otherwise preserve recency order from Everything
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                return results
+                    .OrderByDescending(r => r.Score)
+                    .ThenBy(r => r.Title)
+                    .Take(_settings.MaxResults)
+                    .ToList();
+            }
+
+            // No query - keep recency order (already sorted by date modified from Everything)
             return results
-                .OrderByDescending(r => r.Score)
-                .ThenBy(r => r.Title)
                 .Take(_settings.MaxResults)
                 .ToList();
         }
@@ -112,8 +142,10 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     subTitle = searchResult.Language != Languages.Unknown
                         ? $"{searchResult.Path} • {searchResult.Language}"
                         : searchResult.Path;
-                    // Use language icon
-                    iconPath = LanguageDetector.GetIconPath(searchResult.Language);
+                    // Use custom icon if available, otherwise language icon
+                    iconPath = !string.IsNullOrEmpty(searchResult.CustomIconPath)
+                        ? searchResult.CustomIconPath
+                        : LanguageDetector.GetIconPath(searchResult.Language);
                     break;
 
                 case SearchResultType.CodeWorkspace:
