@@ -54,6 +54,20 @@
                  TextChanged="SearchPathsTextBox_TextChanged"
                  Margin="0,0,0,15"/>
 
+        <!-- Ignored Directories -->
+        <TextBlock Text="Ignored Directories" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="Directory names to skip when searching (one per line, e.g., node_modules)"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <TextBox x:Name="IgnoredDirectoriesTextBox"
+                 Height="80"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 TextChanged="IgnoredDirectoriesTextBox_TextChanged"
+                 Margin="0,0,0,15"/>
+
         <!-- Max Results -->
         <TextBlock Text="Maximum Results" FontWeight="Bold" Margin="0,0,0,5"/>
         <TextBlock Text="Maximum number of results to show when query is empty"

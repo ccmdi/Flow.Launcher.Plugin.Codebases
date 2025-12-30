@@ -26,6 +26,33 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         public int MaxResults { get; set; } = 50;
 
         /// <summary>
+        /// Directory names to ignore when searching (e.g., node_modules, vendor)
+        /// </summary>
+        public List<string> IgnoredDirectories { get; set; } = new List<string>
+        {
+            "node_modules",
+            "vendor",
+            "__pycache__",
+            ".venv",
+            "venv",
+            "env",
+            ".env",
+            "dist",
+            "build",
+            "bin",
+            "obj",
+            ".next",
+            ".nuxt",
+            "target",
+            "out",
+            "coverage",
+            ".cache",
+            "packages",
+            ".gradle",
+            "bower_components"
+        };
+
+        /// <summary>
         /// Gets the CLI command for the configured editor
         /// </summary>
         public string GetEditorCommand()
@@ -35,6 +62,19 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 Editor.Cursor => "cursor",
                 Editor.VSCode => "code",
                 _ => "code"
+            };
+        }
+
+        /// <summary>
+        /// Gets the icon path for the configured editor
+        /// </summary>
+        public string GetEditorIconPath()
+        {
+            return Editor switch
+            {
+                Editor.Cursor => "Images\\cursor.png",
+                Editor.VSCode => "Images\\vscode.png",
+                _ => "Images\\vscode.png"
             };
         }
     }
