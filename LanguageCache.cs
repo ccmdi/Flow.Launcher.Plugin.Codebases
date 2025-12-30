@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,20 +18,25 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     public class LanguageCache
     {
         private readonly string _cachePath;
-        private readonly LanguageDetector _detector;
+        private readonly Settings _settings;
         private readonly TimeSpan _staleThreshold;
         private ConcurrentDictionary<string, LanguageCacheEntry> _cache;
         private readonly object _saveLock = new();
         private bool _isDirty;
 
-        public LanguageCache(string pluginDirectory, TimeSpan? staleThreshold = null)
+        public LanguageCache(string pluginDirectory, Settings settings, TimeSpan? staleThreshold = null)
         {
             _cachePath = Path.Combine(pluginDirectory, "language_cache.json");
-            _detector = new LanguageDetector();
+            _settings = settings;
             _staleThreshold = staleThreshold ?? TimeSpan.FromHours(24);
             _cache = new ConcurrentDictionary<string, LanguageCacheEntry>(StringComparer.OrdinalIgnoreCase);
 
             Load();
+        }
+
+        private LanguageDetector CreateDetector()
+        {
+            return new LanguageDetector(_settings.IgnoredDirectories);
         }
 
         /// <summary>
@@ -59,7 +65,8 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         /// </summary>
         public string DetectAndCache(string path)
         {
-            var language = _detector.Detect(path);
+            var detector = CreateDetector();
+            var language = detector.Detect(path);
 
             _cache[path] = new LanguageCacheEntry
             {
@@ -69,6 +76,47 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
             _isDirty = true;
             return language;
+        }
+
+        /// <summary>
+        /// Force rebuilds the cache for a single path
+        /// </summary>
+        public string ForceRebuild(string path)
+        {
+            // Remove existing entry to force re-detection
+            _cache.TryRemove(path, out _);
+            return DetectAndCache(path);
+        }
+
+        /// <summary>
+        /// Rebuilds cache for all paths in the background
+        /// </summary>
+        public Task RebuildAllAsync(IEnumerable<string> paths, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() =>
+            {
+                var pathList = paths.ToList();
+                var rebuilt = 0;
+
+                foreach (var path in pathList)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
+                    // Force rebuild regardless of staleness
+                    _cache.TryRemove(path, out _);
+                    DetectAndCache(path);
+                    rebuilt++;
+
+                    // Save periodically
+                    if (rebuilt % 20 == 0)
+                        Save();
+                }
+
+                // Final save
+                if (_isDirty)
+                    Save();
+            }, cancellationToken);
         }
 
         /// <summary>

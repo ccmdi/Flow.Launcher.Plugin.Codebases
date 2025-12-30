@@ -7,7 +7,7 @@ using System.Windows.Controls;
 
 namespace Flow.Launcher.Plugin.CodebaseFinder
 {
-    public class Main : IPlugin, ISettingProvider
+    public class Main : IPlugin, ISettingProvider, IContextMenu
     {
         private PluginInitContext _context;
         private Settings _settings;
@@ -16,6 +16,10 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         private LanguageCache _languageCache;
         private CancellationTokenSource _refreshCts;
 
+        // Expose for settings panel rebuild button
+        public LanguageCache LanguageCache => _languageCache;
+        public EverythingSearch Search => _search;
+
         public void Init(PluginInitContext context)
         {
             _context = context;
@@ -23,9 +27,8 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             _search = new EverythingSearch(_settings);
             _resultBuilder = new ResultBuilder(_settings, context);
 
-            // Initialize language cache
-            var pluginDir = Path.GetDirectoryName(context.CurrentPluginMetadata.PluginDirectory);
-            _languageCache = new LanguageCache(context.CurrentPluginMetadata.PluginDirectory);
+            // Initialize language cache with settings for ignored directories
+            _languageCache = new LanguageCache(context.CurrentPluginMetadata.PluginDirectory, _settings);
 
             // Start background refresh of language cache
             StartBackgroundRefresh();
@@ -106,7 +109,36 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
         public Control CreateSettingPanel()
         {
-            return new SettingsControl(_settings, _context);
+            return new SettingsControl(_settings, _context, this);
+        }
+
+        public List<Result> LoadContextMenus(Result selectedResult)
+        {
+            var contextMenus = new List<Result>();
+
+            if (selectedResult.ContextData is SearchResult searchResult &&
+                searchResult.Type == SearchResultType.GitRepository)
+            {
+                contextMenus.Add(new Result
+                {
+                    Title = "Rebuild language cache",
+                    SubTitle = $"Re-detect language for {Path.GetFileName(searchResult.Path)}",
+                    IcoPath = LanguageDetector.GetIconPath(searchResult.Language),
+                    Action = _ =>
+                    {
+                        Task.Run(() =>
+                        {
+                            var newLanguage = _languageCache.ForceRebuild(searchResult.Path);
+                            _context.API.ShowMsg("Language Cache",
+                                $"Detected: {newLanguage}",
+                                LanguageDetector.GetIconPath(newLanguage));
+                        });
+                        return true;
+                    }
+                });
+            }
+
+            return contextMenus;
         }
     }
 }

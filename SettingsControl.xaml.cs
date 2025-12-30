@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -11,12 +12,14 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         private readonly Settings _settings;
         private readonly PluginInitContext _context;
+        private readonly Main _plugin;
         private bool _isInitializing = true;
 
-        public SettingsControl(Settings settings, PluginInitContext context)
+        public SettingsControl(Settings settings, PluginInitContext context, Main plugin)
         {
             _settings = settings;
             _context = context;
+            _plugin = plugin;
 
             InitializeComponent();
             LoadSettings();
@@ -139,6 +142,45 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 _settings.MaxResults = maxResults;
                 SaveSettings();
             }
+        }
+
+        private void RebuildCacheButton_Click(object sender, RoutedEventArgs e)
+        {
+            RebuildCacheButton.IsEnabled = false;
+            RebuildCacheButton.Content = "Rebuilding...";
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Get all repo paths
+                    var searchResults = _plugin.Search.Search();
+                    var repoPaths = searchResults
+                        .Where(r => r.Type == SearchResultType.GitRepository)
+                        .Select(r => r.Path)
+                        .ToList();
+
+                    // Rebuild all
+                    await _plugin.LanguageCache.RebuildAllAsync(repoPaths);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _context.API.ShowMsg("Language Cache",
+                            $"Rebuilt language cache for {repoPaths.Count} repositories");
+                        RebuildCacheButton.Content = "Rebuild Language Cache";
+                        RebuildCacheButton.IsEnabled = true;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        _context.API.ShowMsg("Error", $"Failed to rebuild cache: {ex.Message}");
+                        RebuildCacheButton.Content = "Rebuild Language Cache";
+                        RebuildCacheButton.IsEnabled = true;
+                    });
+                }
+            });
         }
     }
 }

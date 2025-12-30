@@ -29,90 +29,102 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
     public class LanguageDetector
     {
-        // Signature files mapped to languages (checked in order - first match wins)
-        private static readonly List<(string[] Files, string[] Patterns, string Language)> SignatureRules = new()
+        private readonly HashSet<string> _ignoredDirectories;
+        private const int MaxFilesToScan = 500;
+
+        // Extensions to skip (binary, media, etc.)
+        private static readonly HashSet<string> SkipExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            // TypeScript (check before JavaScript since TS projects also have package.json)
-            (new[] { "tsconfig.json" }, Array.Empty<string>(), Languages.TypeScript),
-
-            // Rust
-            (new[] { "Cargo.toml" }, Array.Empty<string>(), Languages.Rust),
-
-            // Go
-            (new[] { "go.mod" }, Array.Empty<string>(), Languages.Go),
-
-            // C# (check for .csproj or .sln files)
-            (Array.Empty<string>(), new[] { "*.csproj", "*.sln" }, Languages.CSharp),
-
-            // Java/Kotlin (Kotlin uses Gradle too, check for .kt files)
-            (new[] { "build.gradle.kts" }, Array.Empty<string>(), Languages.Kotlin),
-            (new[] { "pom.xml", "build.gradle" }, Array.Empty<string>(), Languages.Java),
-
-            // Python
-            (new[] { "pyproject.toml", "setup.py", "requirements.txt", "Pipfile" }, Array.Empty<string>(), Languages.Python),
-
-            // Ruby
-            (new[] { "Gemfile" }, Array.Empty<string>(), Languages.Ruby),
-
-            // PHP
-            (new[] { "composer.json" }, Array.Empty<string>(), Languages.PHP),
-
-            // Swift
-            (new[] { "Package.swift" }, Array.Empty<string>(), Languages.Swift),
-            (Array.Empty<string>(), new[] { "*.xcodeproj", "*.xcworkspace" }, Languages.Swift),
-
-            // Dart/Flutter
-            (new[] { "pubspec.yaml" }, Array.Empty<string>(), Languages.Dart),
-
-            // Elixir
-            (new[] { "mix.exs" }, Array.Empty<string>(), Languages.Elixir),
-
-            // JavaScript (after TypeScript check)
-            (new[] { "package.json" }, Array.Empty<string>(), Languages.JavaScript),
-
-            // C/C++ (check for common build files)
-            (new[] { "CMakeLists.txt" }, Array.Empty<string>(), Languages.Cpp),
-            (Array.Empty<string>(), new[] { "*.vcxproj" }, Languages.Cpp),
-            (new[] { "Makefile" }, new[] { "*.cpp", "*.cc", "*.cxx" }, Languages.Cpp),
-            (new[] { "Makefile" }, new[] { "*.c" }, Languages.C),
-
-            // Shell
-            (Array.Empty<string>(), new[] { "*.sh" }, Languages.Shell),
-
-            // Lua
-            (Array.Empty<string>(), new[] { "*.lua" }, Languages.Lua),
+            ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".webp", ".bmp",
+            ".mp3", ".mp4", ".wav", ".avi", ".mov", ".mkv", ".webm",
+            ".exe", ".dll", ".so", ".dylib", ".bin", ".obj", ".o",
+            ".zip", ".tar", ".gz", ".rar", ".7z",
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+            ".lock", ".sum", ".mod"
         };
 
-        // Fallback: check for source file extensions
-        private static readonly Dictionary<string, string> ExtensionFallbacks = new(StringComparer.OrdinalIgnoreCase)
+        // Map extensions to languages
+        private static readonly Dictionary<string, string> ExtensionToLanguage = new(StringComparer.OrdinalIgnoreCase)
         {
+            // TypeScript
             { ".ts", Languages.TypeScript },
             { ".tsx", Languages.TypeScript },
+            { ".mts", Languages.TypeScript },
+            { ".cts", Languages.TypeScript },
+
+            // JavaScript
             { ".js", Languages.JavaScript },
             { ".jsx", Languages.JavaScript },
+            { ".mjs", Languages.JavaScript },
+            { ".cjs", Languages.JavaScript },
+
+            // Python
             { ".py", Languages.Python },
+            { ".pyw", Languages.Python },
+            { ".pyx", Languages.Python },
+
+            // Rust
             { ".rs", Languages.Rust },
+
+            // Go
             { ".go", Languages.Go },
+
+            // C#
             { ".cs", Languages.CSharp },
+
+            // Java
             { ".java", Languages.Java },
+
+            // Kotlin
             { ".kt", Languages.Kotlin },
+            { ".kts", Languages.Kotlin },
+
+            // Ruby
             { ".rb", Languages.Ruby },
+            { ".rake", Languages.Ruby },
+
+            // PHP
             { ".php", Languages.PHP },
+
+            // Swift
             { ".swift", Languages.Swift },
+
+            // Dart
             { ".dart", Languages.Dart },
+
+            // C++
             { ".cpp", Languages.Cpp },
             { ".cc", Languages.Cpp },
             { ".cxx", Languages.Cpp },
+            { ".hpp", Languages.Cpp },
+            { ".hxx", Languages.Cpp },
+
+            // C
             { ".c", Languages.C },
             { ".h", Languages.C },
+
+            // Elixir
             { ".ex", Languages.Elixir },
             { ".exs", Languages.Elixir },
+
+            // Shell
             { ".sh", Languages.Shell },
+            { ".bash", Languages.Shell },
+            { ".zsh", Languages.Shell },
+
+            // Lua
             { ".lua", Languages.Lua },
         };
 
+        public LanguageDetector(IEnumerable<string> ignoredDirectories = null)
+        {
+            _ignoredDirectories = new HashSet<string>(
+                ignoredDirectories ?? Enumerable.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+        }
+
         /// <summary>
-        /// Detects the primary language of a repository
+        /// Detects the primary language of a repository by counting file extensions
         /// </summary>
         public string Detect(string repoPath)
         {
@@ -121,33 +133,19 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
             try
             {
-                // First, try signature file detection
-                foreach (var (files, patterns, language) in SignatureRules)
-                {
-                    // Check for exact file matches
-                    foreach (var file in files)
-                    {
-                        if (File.Exists(Path.Combine(repoPath, file)))
-                            return language;
-                    }
+                var languageCounts = new Dictionary<string, int>();
+                var filesScanned = 0;
 
-                    // Check for pattern matches (e.g., *.csproj)
-                    foreach (var pattern in patterns)
-                    {
-                        try
-                        {
-                            if (Directory.EnumerateFiles(repoPath, pattern, SearchOption.TopDirectoryOnly).Any())
-                                return language;
-                        }
-                        catch
-                        {
-                            // Ignore access errors
-                        }
-                    }
-                }
+                ScanDirectory(repoPath, languageCounts, ref filesScanned);
 
-                // Fallback: scan top-level files for known extensions
-                return DetectByExtension(repoPath);
+                if (languageCounts.Count == 0)
+                    return Languages.Unknown;
+
+                // Return the language with the highest file count
+                return languageCounts
+                    .OrderByDescending(kvp => kvp.Value)
+                    .First()
+                    .Key;
             }
             catch
             {
@@ -155,41 +153,57 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             }
         }
 
-        private string DetectByExtension(string repoPath)
+        private void ScanDirectory(string path, Dictionary<string, int> languageCounts, ref int filesScanned)
         {
+            if (filesScanned >= MaxFilesToScan)
+                return;
+
             try
             {
-                var files = Directory.EnumerateFiles(repoPath, "*", SearchOption.TopDirectoryOnly)
-                    .Take(100); // Limit scan
-
-                foreach (var file in files)
+                // Process files in current directory
+                foreach (var file in Directory.EnumerateFiles(path))
                 {
+                    if (filesScanned >= MaxFilesToScan)
+                        return;
+
                     var ext = Path.GetExtension(file);
-                    if (ExtensionFallbacks.TryGetValue(ext, out var language))
-                        return language;
+
+                    // Skip binary/media files
+                    if (SkipExtensions.Contains(ext))
+                        continue;
+
+                    if (ExtensionToLanguage.TryGetValue(ext, out var language))
+                    {
+                        if (!languageCounts.ContainsKey(language))
+                            languageCounts[language] = 0;
+                        languageCounts[language]++;
+                        filesScanned++;
+                    }
                 }
 
-                // Check src folder if exists
-                var srcPath = Path.Combine(repoPath, "src");
-                if (Directory.Exists(srcPath))
+                // Recursively scan subdirectories
+                foreach (var dir in Directory.EnumerateDirectories(path))
                 {
-                    var srcFiles = Directory.EnumerateFiles(srcPath, "*", SearchOption.TopDirectoryOnly)
-                        .Take(50);
+                    if (filesScanned >= MaxFilesToScan)
+                        return;
 
-                    foreach (var file in srcFiles)
-                    {
-                        var ext = Path.GetExtension(file);
-                        if (ExtensionFallbacks.TryGetValue(ext, out var language))
-                            return language;
-                    }
+                    var dirName = Path.GetFileName(dir);
+
+                    // Skip ignored directories
+                    if (_ignoredDirectories.Contains(dirName))
+                        continue;
+
+                    // Skip hidden directories (starting with .)
+                    if (dirName.StartsWith("."))
+                        continue;
+
+                    ScanDirectory(dir, languageCounts, ref filesScanned);
                 }
             }
             catch
             {
-                // Ignore errors
+                // Ignore access errors and continue
             }
-
-            return Languages.Unknown;
         }
 
         /// <summary>
