@@ -10,7 +10,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 {
     public class LanguageCacheEntry
     {
-        public string Language { get; set; } = Language.Unknown;
+        public string Language { get; set; } = Languages.Unknown;
         public DateTime DetectedAt { get; set; } = DateTime.MinValue;
     }
 
@@ -40,7 +40,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         {
             if (_cache.TryGetValue(path, out var entry))
                 return entry.Language;
-            return Language.Unknown;
+            return Languages.Unknown;
         }
 
         /// <summary>

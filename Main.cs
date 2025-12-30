@@ -80,7 +80,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 if (result.Type == SearchResultType.GitRepository)
                 {
                     var cachedLanguage = _languageCache.GetLanguage(result.Path);
-                    if (cachedLanguage != Language.Unknown)
+                    if (cachedLanguage != Languages.Unknown)
                     {
                         result.Language = cachedLanguage;
                     }

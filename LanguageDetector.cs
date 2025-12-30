@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Flow.Launcher.Plugin.CodebaseFinder
 {
-    public static class Language
+    public static class Languages
     {
         public const string TypeScript = "TypeScript";
         public const string JavaScript = "JavaScript";
@@ -33,82 +33,82 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         private static readonly List<(string[] Files, string[] Patterns, string Language)> SignatureRules = new()
         {
             // TypeScript (check before JavaScript since TS projects also have package.json)
-            (new[] { "tsconfig.json" }, Array.Empty<string>(), Language.TypeScript),
+            (new[] { "tsconfig.json" }, Array.Empty<string>(), Languages.TypeScript),
 
             // Rust
-            (new[] { "Cargo.toml" }, Array.Empty<string>(), Language.Rust),
+            (new[] { "Cargo.toml" }, Array.Empty<string>(), Languages.Rust),
 
             // Go
-            (new[] { "go.mod" }, Array.Empty<string>(), Language.Go),
+            (new[] { "go.mod" }, Array.Empty<string>(), Languages.Go),
 
             // C# (check for .csproj or .sln files)
-            (Array.Empty<string>(), new[] { "*.csproj", "*.sln" }, Language.CSharp),
+            (Array.Empty<string>(), new[] { "*.csproj", "*.sln" }, Languages.CSharp),
 
             // Java/Kotlin (Kotlin uses Gradle too, check for .kt files)
-            (new[] { "build.gradle.kts" }, Array.Empty<string>(), Language.Kotlin),
-            (new[] { "pom.xml", "build.gradle" }, Array.Empty<string>(), Language.Java),
+            (new[] { "build.gradle.kts" }, Array.Empty<string>(), Languages.Kotlin),
+            (new[] { "pom.xml", "build.gradle" }, Array.Empty<string>(), Languages.Java),
 
             // Python
-            (new[] { "pyproject.toml", "setup.py", "requirements.txt", "Pipfile" }, Array.Empty<string>(), Language.Python),
+            (new[] { "pyproject.toml", "setup.py", "requirements.txt", "Pipfile" }, Array.Empty<string>(), Languages.Python),
 
             // Ruby
-            (new[] { "Gemfile" }, Array.Empty<string>(), Language.Ruby),
+            (new[] { "Gemfile" }, Array.Empty<string>(), Languages.Ruby),
 
             // PHP
-            (new[] { "composer.json" }, Array.Empty<string>(), Language.PHP),
+            (new[] { "composer.json" }, Array.Empty<string>(), Languages.PHP),
 
             // Swift
-            (new[] { "Package.swift" }, Array.Empty<string>(), Language.Swift),
-            (Array.Empty<string>(), new[] { "*.xcodeproj", "*.xcworkspace" }, Language.Swift),
+            (new[] { "Package.swift" }, Array.Empty<string>(), Languages.Swift),
+            (Array.Empty<string>(), new[] { "*.xcodeproj", "*.xcworkspace" }, Languages.Swift),
 
             // Dart/Flutter
-            (new[] { "pubspec.yaml" }, Array.Empty<string>(), Language.Dart),
+            (new[] { "pubspec.yaml" }, Array.Empty<string>(), Languages.Dart),
 
             // Elixir
-            (new[] { "mix.exs" }, Array.Empty<string>(), Language.Elixir),
+            (new[] { "mix.exs" }, Array.Empty<string>(), Languages.Elixir),
 
             // JavaScript (after TypeScript check)
-            (new[] { "package.json" }, Array.Empty<string>(), Language.JavaScript),
+            (new[] { "package.json" }, Array.Empty<string>(), Languages.JavaScript),
 
             // C/C++ (check for common build files)
-            (new[] { "CMakeLists.txt" }, Array.Empty<string>(), Language.Cpp),
-            (Array.Empty<string>(), new[] { "*.vcxproj" }, Language.Cpp),
-            (new[] { "Makefile" }, new[] { "*.cpp", "*.cc", "*.cxx" }, Language.Cpp),
-            (new[] { "Makefile" }, new[] { "*.c" }, Language.C),
+            (new[] { "CMakeLists.txt" }, Array.Empty<string>(), Languages.Cpp),
+            (Array.Empty<string>(), new[] { "*.vcxproj" }, Languages.Cpp),
+            (new[] { "Makefile" }, new[] { "*.cpp", "*.cc", "*.cxx" }, Languages.Cpp),
+            (new[] { "Makefile" }, new[] { "*.c" }, Languages.C),
 
             // Shell
-            (Array.Empty<string>(), new[] { "*.sh" }, Language.Shell),
+            (Array.Empty<string>(), new[] { "*.sh" }, Languages.Shell),
 
             // Lua
-            (Array.Empty<string>(), new[] { "*.lua" }, Language.Lua),
+            (Array.Empty<string>(), new[] { "*.lua" }, Languages.Lua),
         };
 
         // Fallback: check for source file extensions
         private static readonly Dictionary<string, string> ExtensionFallbacks = new(StringComparer.OrdinalIgnoreCase)
         {
-            { ".ts", Language.TypeScript },
-            { ".tsx", Language.TypeScript },
-            { ".js", Language.JavaScript },
-            { ".jsx", Language.JavaScript },
-            { ".py", Language.Python },
-            { ".rs", Language.Rust },
-            { ".go", Language.Go },
-            { ".cs", Language.CSharp },
-            { ".java", Language.Java },
-            { ".kt", Language.Kotlin },
-            { ".rb", Language.Ruby },
-            { ".php", Language.PHP },
-            { ".swift", Language.Swift },
-            { ".dart", Language.Dart },
-            { ".cpp", Language.Cpp },
-            { ".cc", Language.Cpp },
-            { ".cxx", Language.Cpp },
-            { ".c", Language.C },
-            { ".h", Language.C },
-            { ".ex", Language.Elixir },
-            { ".exs", Language.Elixir },
-            { ".sh", Language.Shell },
-            { ".lua", Language.Lua },
+            { ".ts", Languages.TypeScript },
+            { ".tsx", Languages.TypeScript },
+            { ".js", Languages.JavaScript },
+            { ".jsx", Languages.JavaScript },
+            { ".py", Languages.Python },
+            { ".rs", Languages.Rust },
+            { ".go", Languages.Go },
+            { ".cs", Languages.CSharp },
+            { ".java", Languages.Java },
+            { ".kt", Languages.Kotlin },
+            { ".rb", Languages.Ruby },
+            { ".php", Languages.PHP },
+            { ".swift", Languages.Swift },
+            { ".dart", Languages.Dart },
+            { ".cpp", Languages.Cpp },
+            { ".cc", Languages.Cpp },
+            { ".cxx", Languages.Cpp },
+            { ".c", Languages.C },
+            { ".h", Languages.C },
+            { ".ex", Languages.Elixir },
+            { ".exs", Languages.Elixir },
+            { ".sh", Languages.Shell },
+            { ".lua", Languages.Lua },
         };
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         public string Detect(string repoPath)
         {
             if (!Directory.Exists(repoPath))
-                return Language.Unknown;
+                return Languages.Unknown;
 
             try
             {
@@ -151,7 +151,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             }
             catch
             {
-                return Language.Unknown;
+                return Languages.Unknown;
             }
         }
 
@@ -189,7 +189,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 // Ignore errors
             }
 
-            return Language.Unknown;
+            return Languages.Unknown;
         }
 
         /// <summary>
@@ -199,23 +199,23 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         {
             return language switch
             {
-                Language.TypeScript => "Images\\lang_typescript.png",
-                Language.JavaScript => "Images\\lang_javascript.png",
-                Language.Python => "Images\\lang_python.png",
-                Language.Rust => "Images\\lang_rust.png",
-                Language.Go => "Images\\lang_go.png",
-                Language.CSharp => "Images\\lang_csharp.png",
-                Language.Java => "Images\\lang_java.png",
-                Language.Kotlin => "Images\\lang_kotlin.png",
-                Language.Ruby => "Images\\lang_ruby.png",
-                Language.PHP => "Images\\lang_php.png",
-                Language.Swift => "Images\\lang_swift.png",
-                Language.Dart => "Images\\lang_dart.png",
-                Language.Cpp => "Images\\lang_cpp.png",
-                Language.C => "Images\\lang_c.png",
-                Language.Elixir => "Images\\lang_elixir.png",
-                Language.Shell => "Images\\lang_shell.png",
-                Language.Lua => "Images\\lang_lua.png",
+                Languages.TypeScript => "Images\\lang_typescript.png",
+                Languages.JavaScript => "Images\\lang_javascript.png",
+                Languages.Python => "Images\\lang_python.png",
+                Languages.Rust => "Images\\lang_rust.png",
+                Languages.Go => "Images\\lang_go.png",
+                Languages.CSharp => "Images\\lang_csharp.png",
+                Languages.Java => "Images\\lang_java.png",
+                Languages.Kotlin => "Images\\lang_kotlin.png",
+                Languages.Ruby => "Images\\lang_ruby.png",
+                Languages.PHP => "Images\\lang_php.png",
+                Languages.Swift => "Images\\lang_swift.png",
+                Languages.Dart => "Images\\lang_dart.png",
+                Languages.Cpp => "Images\\lang_cpp.png",
+                Languages.C => "Images\\lang_c.png",
+                Languages.Elixir => "Images\\lang_elixir.png",
+                Languages.Shell => "Images\\lang_shell.png",
+                Languages.Lua => "Images\\lang_lua.png",
                 _ => "Images\\lang_unknown.png"
             };
         }

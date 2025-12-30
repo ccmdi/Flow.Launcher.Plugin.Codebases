@@ -10,7 +10,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
     {
         public string Path { get; set; }
         public SearchResultType Type { get; set; }
-        public string Language { get; set; } = Language.Unknown;
+        public string Language { get; set; } = Languages.Unknown;
     }
 
     public enum SearchResultType

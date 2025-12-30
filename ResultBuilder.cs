@@ -109,7 +109,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
                     targetPath = searchResult.Path;
                     // Show language in subtitle if known
-                    subTitle = searchResult.Language != Language.Unknown
+                    subTitle = searchResult.Language != Languages.Unknown
                         ? $"{searchResult.Path} • {searchResult.Language}"
                         : searchResult.Path;
                     // Use language icon
