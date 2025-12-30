@@ -17,7 +17,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             _context = context;
         }
 
-        private string IconPath => _settings.GetEditorIconPath();
+        private string EditorIconPath => _settings.GetEditorIconPath();
 
         /// <summary>
         /// Builds Flow Launcher results from search results, filtered by query
@@ -67,7 +67,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 Title = "Everything CLI not found",
                 SubTitle = "Install Everything from voidtools.com and ensure es.exe is in PATH or configured",
-                IcoPath = IconPath,
+                IcoPath = EditorIconPath,
                 Action = _ =>
                 {
                     Process.Start(new ProcessStartInfo
@@ -91,7 +91,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 SubTitle = string.IsNullOrWhiteSpace(query)
                     ? "No .git folders or .code-workspace files found in search paths"
                     : $"No codebases matching '{query}'",
-                IcoPath = _iconPath
+                IcoPath = EditorIconPath
             };
         }
 
@@ -100,14 +100,20 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             string title;
             string subTitle;
             string targetPath;
+            string iconPath;
 
             switch (searchResult.Type)
             {
                 case SearchResultType.GitRepository:
                     // For git repos, title is folder name, path is to folder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
-                    subTitle = searchResult.Path;
                     targetPath = searchResult.Path;
+                    // Show language in subtitle if known
+                    subTitle = searchResult.Language != Language.Unknown
+                        ? $"{searchResult.Path} • {searchResult.Language}"
+                        : searchResult.Path;
+                    // Use language icon
+                    iconPath = LanguageDetector.GetIconPath(searchResult.Language);
                     break;
 
                 case SearchResultType.CodeWorkspace:
@@ -115,6 +121,8 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
                     subTitle = searchResult.Path;
                     targetPath = searchResult.Path;
+                    // Use editor icon for workspaces
+                    iconPath = EditorIconPath;
                     break;
 
                 default:
@@ -125,7 +133,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
             {
                 Title = title,
                 SubTitle = subTitle,
-                IcoPath = IconPath,
+                IcoPath = iconPath,
                 Action = _ => OpenInEditor(targetPath),
                 ContextData = searchResult
             };
