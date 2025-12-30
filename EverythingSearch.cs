@@ -60,6 +60,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         public List<SearchResult> Search()
         {
             var results = new List<SearchResult>();
+            var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var searchPath in _settings.SearchPaths)
             {
@@ -78,6 +79,12 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                     var parentDir = Path.GetDirectoryName(gitPath);
                     if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
                     {
+                        // Skip duplicates (can occur with overlapping search paths)
+                        var key = $"git:{parentDir}";
+                        if (seenPaths.Contains(key))
+                            continue;
+                        seenPaths.Add(key);
+
                         results.Add(new SearchResult
                         {
                             Path = parentDir,
@@ -96,6 +103,12 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
 
                     if (File.Exists(workspacePath))
                     {
+                        // Skip duplicates
+                        var key = $"ws:{workspacePath}";
+                        if (seenPaths.Contains(key))
+                            continue;
+                        seenPaths.Add(key);
+
                         results.Add(new SearchResult
                         {
                             Path = workspacePath,
