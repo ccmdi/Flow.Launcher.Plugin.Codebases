@@ -12,6 +12,7 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         private PluginInitContext _context;
         private Settings _settings;
         private EverythingSearch _search;
+        private SearchResultCache _searchCache;
         private ResultBuilder _resultBuilder;
         private LanguageCache _languageCache;
         private CancellationTokenSource _refreshCts;
@@ -19,12 +20,14 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
         // Expose for settings panel rebuild button
         public LanguageCache LanguageCache => _languageCache;
         public EverythingSearch Search => _search;
+        public SearchResultCache SearchCache => _searchCache;
 
         public void Init(PluginInitContext context)
         {
             _context = context;
             _settings = context.API.LoadSettingJsonStorage<Settings>();
             _search = new EverythingSearch(_settings);
+            _searchCache = new SearchResultCache(context.CurrentPluginMetadata.PluginDirectory, _search);
             _resultBuilder = new ResultBuilder(_settings, context);
 
             // Initialize language cache with settings for ignored directories
@@ -47,14 +50,14 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 if (!_search.IsAvailable())
                     return;
 
-                // Get all repo paths
-                var searchResults = _search.Search();
+                // Force refresh the search cache on startup to ensure it's fresh
+                var searchResults = _searchCache.ForceRefresh();
                 var repoPaths = searchResults
                     .Where(r => r.Type == SearchResultType.GitRepository)
                     .Select(r => r.Path)
                     .ToList();
 
-                // Refresh stale entries
+                // Refresh stale language entries
                 await _languageCache.RefreshStaleEntriesAsync(repoPaths, _refreshCts.Token);
 
                 // Cleanup entries for deleted repos
@@ -74,8 +77,8 @@ namespace Flow.Launcher.Plugin.CodebaseFinder
                 return results;
             }
 
-            // Perform search
-            var searchResults = _search.Search();
+            // Get cached results (triggers background refresh if stale)
+            var searchResults = _searchCache.GetResults();
 
             // Enrich with language info from cache
             foreach (var result in searchResults)
