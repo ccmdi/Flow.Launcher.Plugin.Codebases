@@ -1,12 +1,12 @@
 {
   "ID": "F7D92E3A-4B1C-4E8F-9A5D-6C2B8E1F0A3D",
   "ActionKeyword": "code",
-  "Name": "Codebase Finder",
+  "Name": "Codebases",
   "Description": "Quickly find and open codebases in your editor using Everything search",
-  "Author": "Flow Launcher Community",
+  "Author": "ccmdi",
   "Version": "1.0.0",
   "Language": "csharp",
-  "Website": "https://github.com/Flow-Launcher/Flow.Launcher.Plugin.CodebaseFinder",
+  "Website": "https://github.com/Flow-Launcher/Flow.Launcher.Plugin.Codebases",
   "IcoPath": "Images\\cursor.png",
-  "ExecuteFileName": "Flow.Launcher.Plugin.CodebaseFinder.dll"
+  "ExecuteFileName": "Flow.Launcher.Plugin.Codebases.dll"
 }

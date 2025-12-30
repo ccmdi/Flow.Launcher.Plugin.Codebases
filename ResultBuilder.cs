@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public class ResultBuilder
     {

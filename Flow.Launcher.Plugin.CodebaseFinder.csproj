@@ -5,10 +5,10 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <AssemblyName>Flow.Launcher.Plugin.CodebaseFinder</AssemblyName>
-    <RootNamespace>Flow.Launcher.Plugin.CodebaseFinder</RootNamespace>
+    <AssemblyName>Flow.Launcher.Plugin.Codebases</AssemblyName>
+    <RootNamespace>Flow.Launcher.Plugin.Codebases</RootNamespace>
     <Version>1.0.0</Version>
-    <Authors>Flow Launcher Community</Authors>
+    <Authors>ccmdi</Authors>
     <Description>Quickly find and open codebases in your editor using Everything search</Description>
   </PropertyGroup>
 

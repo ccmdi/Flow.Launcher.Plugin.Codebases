@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public partial class SettingsControl : UserControl
     {

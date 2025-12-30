@@ -19,7 +19,7 @@ A Flow Launcher plugin that leverages Everything's CLI (`es.exe`) to instantly f
 ## Components
 
 ```
-FlowLauncher.Plugin.CodebaseFinder/
+Flow.Launcher.Plugin.Codebases/
 ├── plugin.json                 # Plugin metadata, keyword, author, etc.
 ├── Main.cs                     # Entry point, implements IPlugin, ISettingProvider
 ├── Settings.cs                 # Settings model
@@ -186,5 +186,5 @@ new Result
 
 1. Build the project targeting the correct .NET version
 2. Output folder structure must match Flow Launcher plugin format
-3. Copy to `%APPDATA%\FlowLauncher\Plugins\CodebaseFinder\`
+3. Copy to `%APPDATA%\FlowLauncher\Plugins\Codebases\`
 4. Restart Flow Launcher or use `reload` command

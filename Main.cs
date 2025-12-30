@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public class Main : IPlugin, ISettingProvider, IContextMenu
     {

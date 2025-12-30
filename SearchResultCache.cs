@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public class CachedSearchResult
     {

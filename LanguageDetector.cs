@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public static class Languages
     {

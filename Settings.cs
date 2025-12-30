@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public enum Editor
     {

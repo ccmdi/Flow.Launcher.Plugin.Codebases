@@ -7,11 +7,11 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Flow.Launcher.Plugin.CodebaseFinder
+namespace Flow.Launcher.Plugin.Codebases
 {
     public class LanguageCacheEntry
     {
-        public string[] Languages { get; set; } = new[] { Flow.Launcher.Plugin.CodebaseFinder.Languages.Unknown };
+        public string[] Languages { get; set; } = new[] { Flow.Launcher.Plugin.Codebases.Languages.Unknown };
         public DateTime DetectedAt { get; set; } = DateTime.MinValue;
     }
 
