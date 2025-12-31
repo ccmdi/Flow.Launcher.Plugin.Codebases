@@ -9,9 +9,17 @@ namespace Flow.Launcher.Plugin.Codebases
         VSCode
     }
 
+    public enum SortMode
+    {
+        GitModified,
+        LastOpened
+    }
+
     public class Settings
     {
         public Editor Editor { get; set; } = Editor.Cursor;
+
+        public SortMode SortMode { get; set; } = SortMode.GitModified;
 
         public List<string> SearchPaths { get; set; } = new List<string>
         {

@@ -39,6 +39,16 @@ namespace Flow.Launcher.Plugin.Codebases
                 }
             }
 
+            // Load Sort Mode
+            foreach (ComboBoxItem item in SortModeComboBox.Items)
+            {
+                if (item.Tag.ToString() == _settings.SortMode.ToString())
+                {
+                    SortModeComboBox.SelectedItem = item;
+                    break;
+                }
+            }
+
             // Load es.exe path
             EsExePathTextBox.Text = _settings.EsExePath;
 
@@ -71,6 +81,21 @@ namespace Flow.Launcher.Plugin.Codebases
             if (Enum.TryParse<Editor>(editorString, out var editor))
             {
                 _settings.Editor = editor;
+                SaveSettings();
+            }
+        }
+
+        private void SortModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || SortModeComboBox.SelectedItem == null)
+                return;
+
+            var selectedItem = (ComboBoxItem)SortModeComboBox.SelectedItem;
+            var sortModeString = selectedItem.Tag.ToString();
+
+            if (Enum.TryParse<SortMode>(sortModeString, out var sortMode))
+            {
+                _settings.SortMode = sortMode;
                 SaveSettings();
             }
         }

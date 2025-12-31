@@ -11,12 +11,14 @@ namespace Flow.Launcher.Plugin.Codebases
     {
         private readonly Settings _settings;
         private readonly PluginInitContext _context;
+        private readonly UsageTracker _usageTracker;
         private static readonly Regex LangFilterRegex = new Regex(@"\blang:(\w+)\b", RegexOptions.IgnoreCase);
 
-        public ResultBuilder(Settings settings, PluginInitContext context)
+        public ResultBuilder(Settings settings, PluginInitContext context, UsageTracker usageTracker)
         {
             _settings = settings;
             _context = context;
+            _usageTracker = usageTracker;
         }
 
         private string EditorIconPath => _settings.GetEditorIconPath();
@@ -84,7 +86,42 @@ namespace Flow.Launcher.Plugin.Codebases
                     .ToList();
             }
 
-            // No query - keep recency order (already sorted by date modified from Everything)
+            // No query - sort based on configured SortMode
+            if (_settings.SortMode == SortMode.LastOpened)
+            {
+                // Partition into opened and never-opened
+                var opened = new List<Result>();
+                var neverOpened = new List<Result>();
+
+                foreach (var result in results)
+                {
+                    if (result.ContextData is SearchResult sr && _usageTracker.GetLastOpened(sr.Path) != null)
+                    {
+                        opened.Add(result);
+                    }
+                    else
+                    {
+                        neverOpened.Add(result);
+                    }
+                }
+
+                // Sort opened by last-opened time descending
+                opened = opened
+                    .OrderByDescending(r =>
+                    {
+                        var sr = r.ContextData as SearchResult;
+                        return sr != null ? _usageTracker.GetLastOpened(sr.Path) : DateTime.MinValue;
+                    })
+                    .ToList();
+
+                // Combine: opened first, then never-opened (keep git-modified order)
+                return opened
+                    .Concat(neverOpened)
+                    .Take(_settings.MaxResults)
+                    .ToList();
+            }
+
+            // GitModified mode - keep recency order (already sorted by date modified from Everything)
             return results
                 .Take(_settings.MaxResults)
                 .ToList();
@@ -180,6 +217,9 @@ namespace Flow.Launcher.Plugin.Codebases
         {
             try
             {
+                // Record usage for sorting
+                _usageTracker.RecordOpen(path);
+
                 var editorCommand = _settings.GetEditorCommand();
 
                 var startInfo = new ProcessStartInfo

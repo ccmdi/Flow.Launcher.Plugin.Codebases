@@ -18,6 +18,21 @@
             <ComboBoxItem Content="VS Code" Tag="VSCode"/>
         </ComboBox>
 
+        <!-- Sort Mode -->
+        <TextBlock Text="Sort Order" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="How to order results when no search query is entered"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <ComboBox x:Name="SortModeComboBox"
+                  Width="200"
+                  HorizontalAlignment="Left"
+                  SelectionChanged="SortModeComboBox_SelectionChanged"
+                  Margin="0,0,0,15">
+            <ComboBoxItem Content="Last Modified (.git)" Tag="GitModified"/>
+            <ComboBoxItem Content="Last Opened" Tag="LastOpened"/>
+        </ComboBox>
+
         <!-- es.exe Path -->
         <TextBlock Text="Everything CLI Path (es.exe)" FontWeight="Bold" Margin="0,0,0,5"/>
         <TextBlock Text="Leave as 'es.exe' if it's in your PATH"

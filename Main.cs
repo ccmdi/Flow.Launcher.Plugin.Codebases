@@ -16,6 +16,7 @@ namespace Flow.Launcher.Plugin.Codebases
         private SearchResultCache _searchCache;
         private ResultBuilder _resultBuilder;
         private LanguageCache _languageCache;
+        private UsageTracker _usageTracker;
         private CancellationTokenSource _refreshCts;
 
         // Expose for settings panel rebuild button
@@ -29,7 +30,8 @@ namespace Flow.Launcher.Plugin.Codebases
             _settings = context.API.LoadSettingJsonStorage<Settings>();
             _search = new EverythingSearch(_settings);
             _searchCache = new SearchResultCache(context.CurrentPluginMetadata.PluginDirectory, _search);
-            _resultBuilder = new ResultBuilder(_settings, context);
+            _usageTracker = new UsageTracker(context.CurrentPluginMetadata.PluginDirectory);
+            _resultBuilder = new ResultBuilder(_settings, context, _usageTracker);
 
             // Initialize language cache with settings for ignored directories
             _languageCache = new LanguageCache(context.CurrentPluginMetadata.PluginDirectory, _settings);
