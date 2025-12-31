@@ -95,6 +95,28 @@
                  TextChanged="MaxResultsTextBox_TextChanged"
                  Margin="0,0,0,15"/>
 
+        <!-- New Codebase Location -->
+        <TextBlock Text="New Codebase Location" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Text="Where to create new codebases (leave empty to disable)"
+                   FontSize="11"
+                   Foreground="Gray"
+                   Margin="0,0,0,5"/>
+        <Grid Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="NewCodebaseLocationTextBox"
+                     Grid.Column="0"
+                     TextChanged="NewCodebaseLocationTextBox_TextChanged"/>
+            <Button x:Name="BrowseNewCodebaseLocationButton"
+                    Grid.Column="1"
+                    Content="Browse..."
+                    Padding="10,5"
+                    Margin="5,0,0,0"
+                    Click="BrowseNewCodebaseLocationButton_Click"/>
+        </Grid>
+
         <!-- Language Cache -->
         <TextBlock Text="Language Cache" FontWeight="Bold" Margin="0,0,0,5"/>
         <TextBlock Text="Re-detect programming languages for all codebases"

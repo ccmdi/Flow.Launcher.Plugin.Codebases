@@ -34,6 +34,11 @@ namespace Flow.Launcher.Plugin.Codebases
         public int MaxResults { get; set; } = 50;
 
         /// <summary>
+        /// Default location for creating new codebases. If empty, the create option is disabled.
+        /// </summary>
+        public string DefaultNewCodebaseLocation { get; set; } = "";
+
+        /// <summary>
         /// Directory names to ignore when searching (e.g., node_modules, vendor)
         /// </summary>
         public List<string> IgnoredDirectories { get; set; } = new List<string>

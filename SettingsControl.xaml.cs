@@ -60,6 +60,9 @@ namespace Flow.Launcher.Plugin.Codebases
 
             // Load max results
             MaxResultsTextBox.Text = _settings.MaxResults.ToString();
+
+            // Load new codebase location
+            NewCodebaseLocationTextBox.Text = _settings.DefaultNewCodebaseLocation;
         }
 
         private void SaveSettings()
@@ -166,6 +169,36 @@ namespace Flow.Launcher.Plugin.Codebases
             {
                 _settings.MaxResults = maxResults;
                 SaveSettings();
+            }
+        }
+
+        private void NewCodebaseLocationTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isInitializing)
+                return;
+
+            _settings.DefaultNewCodebaseLocation = NewCodebaseLocationTextBox.Text.Trim();
+            SaveSettings();
+        }
+
+        private void BrowseNewCodebaseLocationButton_Click(object sender, RoutedEventArgs e)
+        {
+            using var dialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "Select folder for new codebases",
+                UseDescriptionForTitle = true,
+                ShowNewFolderButton = true
+            };
+
+            if (!string.IsNullOrEmpty(_settings.DefaultNewCodebaseLocation) &&
+                System.IO.Directory.Exists(_settings.DefaultNewCodebaseLocation))
+            {
+                dialog.SelectedPath = _settings.DefaultNewCodebaseLocation;
+            }
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                NewCodebaseLocationTextBox.Text = dialog.SelectedPath;
             }
         }
 

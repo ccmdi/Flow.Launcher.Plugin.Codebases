@@ -150,10 +150,27 @@ namespace Flow.Launcher.Plugin.Codebases
         }
 
         /// <summary>
-        /// Creates a result for when no codebases are found
+        /// Creates a result for when no codebases are found.
+        /// If a query is provided and DefaultNewCodebaseLocation is configured,
+        /// offers to create a new codebase instead.
         /// </summary>
         public Result CreateNoResultsResult(string query)
         {
+            // If there's a query and a default location is set, offer to create
+            if (!string.IsNullOrWhiteSpace(query) &&
+                !string.IsNullOrWhiteSpace(_settings.DefaultNewCodebaseLocation) &&
+                Directory.Exists(_settings.DefaultNewCodebaseLocation))
+            {
+                var newPath = Path.Combine(_settings.DefaultNewCodebaseLocation, query);
+                return new Result
+                {
+                    Title = $"Create '{query}'",
+                    SubTitle = newPath,
+                    IcoPath = EditorIconPath,
+                    Action = _ => CreateAndOpenCodebase(newPath)
+                };
+            }
+
             return new Result
             {
                 Title = "No codebases found",
@@ -162,6 +179,36 @@ namespace Flow.Launcher.Plugin.Codebases
                     : $"No codebases matching '{query}'",
                 IcoPath = EditorIconPath
             };
+        }
+
+        private bool CreateAndOpenCodebase(string path)
+        {
+            try
+            {
+                // Create the directory
+                Directory.CreateDirectory(path);
+
+                // Record usage for sorting
+                _usageTracker.RecordOpen(path);
+
+                // Open in editor
+                var editorCommand = _settings.GetEditorCommand();
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = editorCommand,
+                    Arguments = $"\"{path}\"",
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                };
+
+                Process.Start(startInfo);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _context.API.ShowMsg("Error", $"Failed to create codebase: {ex.Message}");
+                return false;
+            }
         }
 
         private Result CreateResult(SearchResult searchResult)
