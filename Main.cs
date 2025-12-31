@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Windows.Controls;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public class Main : IPlugin, ISettingProvider, IContextMenu
+    public class Main : IAsyncPlugin, ISettingProvider, IContextMenu, IAsyncReloadable, IDisposable
     {
         private PluginInitContext _context;
         private Settings _settings;
@@ -22,7 +23,7 @@ namespace Flow.Launcher.Plugin.Codebases
         public EverythingSearch Search => _search;
         public SearchResultCache SearchCache => _searchCache;
 
-        public void Init(PluginInitContext context)
+        public Task InitAsync(PluginInitContext context)
         {
             _context = context;
             _settings = context.API.LoadSettingJsonStorage<Settings>();
@@ -35,6 +36,8 @@ namespace Flow.Launcher.Plugin.Codebases
 
             // Start background refresh of language cache
             StartBackgroundRefresh();
+
+            return Task.CompletedTask;
         }
 
         private void StartBackgroundRefresh()
@@ -65,7 +68,7 @@ namespace Flow.Launcher.Plugin.Codebases
             }, _refreshCts.Token);
         }
 
-        public List<Result> Query(Query query)
+        public Task<List<Result>> QueryAsync(Query query, CancellationToken token)
         {
             var results = new List<Result>();
             var searchText = query.Search?.Trim() ?? string.Empty;
@@ -74,7 +77,7 @@ namespace Flow.Launcher.Plugin.Codebases
             if (!_search.IsAvailable())
             {
                 results.Add(_resultBuilder.CreateEsNotFoundResult());
-                return results;
+                return Task.FromResult(results);
             }
 
             // Get cached results (triggers background refresh if stale)
@@ -83,6 +86,9 @@ namespace Flow.Launcher.Plugin.Codebases
             // Enrich with language info from cache
             foreach (var result in searchResults)
             {
+                if (token.IsCancellationRequested)
+                    return Task.FromResult(results);
+
                 if (result.Type == SearchResultType.GitRepository)
                 {
                     var cachedLanguages = _languageCache.GetLanguages(result.Path);
@@ -107,7 +113,7 @@ namespace Flow.Launcher.Plugin.Codebases
                 results.Add(_resultBuilder.CreateNoResultsResult(searchText));
             }
 
-            return results;
+            return Task.FromResult(results);
         }
 
         public Control CreateSettingPanel()
@@ -163,6 +169,28 @@ namespace Flow.Launcher.Plugin.Codebases
             }
 
             return contextMenus;
+        }
+
+        public async Task ReloadDataAsync()
+        {
+            // Force refresh search cache
+            _searchCache.ForceRefresh();
+
+            // Refresh language cache for all repos
+            var searchResults = _searchCache.GetResults();
+            var repoPaths = searchResults
+                .Where(r => r.Type == SearchResultType.GitRepository)
+                .Select(r => r.Path)
+                .ToList();
+
+            await _languageCache.RefreshStaleEntriesAsync(repoPaths, CancellationToken.None);
+            _languageCache.CleanupMissingPaths();
+        }
+
+        public void Dispose()
+        {
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
         }
     }
 }
