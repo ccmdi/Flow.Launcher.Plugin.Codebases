@@ -5,28 +5,6 @@ using System.Linq;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public static class Languages
-    {
-        public const string TypeScript = "TypeScript";
-        public const string JavaScript = "JavaScript";
-        public const string Python = "Python";
-        public const string Rust = "Rust";
-        public const string Go = "Go";
-        public const string CSharp = "C#";
-        public const string Java = "Java";
-        public const string Kotlin = "Kotlin";
-        public const string Ruby = "Ruby";
-        public const string PHP = "PHP";
-        public const string Swift = "Swift";
-        public const string Dart = "Dart";
-        public const string Cpp = "C++";
-        public const string C = "C";
-        public const string Elixir = "Elixir";
-        public const string Shell = "Shell";
-        public const string Lua = "Lua";
-        public const string Unknown = "Unknown";
-    }
-
     public class LanguageDetector
     {
         private readonly HashSet<string> _ignoredDirectories;

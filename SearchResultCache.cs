@@ -2,18 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public class CachedSearchResult
-    {
-        public string Path { get; set; }
-        public SearchResultType Type { get; set; }
-        public string CustomIconPath { get; set; }
-    }
-
     public class SearchResultCache
     {
         private readonly string _cachePath;

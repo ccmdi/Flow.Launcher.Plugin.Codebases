@@ -3,18 +3,6 @@ using System.Collections.Generic;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public enum Editor
-    {
-        Cursor,
-        VSCode
-    }
-
-    public enum SortMode
-    {
-        GitModified,
-        LastOpened
-    }
-
     public class Settings
     {
         public Editor Editor { get; set; } = Editor.Cursor;

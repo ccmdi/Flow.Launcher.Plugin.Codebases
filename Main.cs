@@ -103,6 +103,13 @@ namespace Flow.Launcher.Plugin.Codebases
                         // Detect synchronously for uncached repos (first time)
                         result.Languages = _languageCache.DetectAndCache(result.Path);
                     }
+
+                    // Always get the (potentially freshly cached) remote URL
+                    var remoteUrl = _languageCache.GetRemoteUrl(result.Path);
+                    if (!string.IsNullOrEmpty(remoteUrl))
+                    {
+                        result.RemoteUrl = remoteUrl;
+                    }
                 }
             }
 

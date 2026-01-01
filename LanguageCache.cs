@@ -4,17 +4,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public class LanguageCacheEntry
-    {
-        public string[] Languages { get; set; } = new[] { Flow.Launcher.Plugin.Codebases.Languages.Unknown };
-        public DateTime DetectedAt { get; set; } = DateTime.MinValue;
-    }
-
     public class LanguageCache
     {
         private readonly string _cachePath;
@@ -50,6 +45,15 @@ namespace Flow.Launcher.Plugin.Codebases
         }
 
         /// <summary>
+        /// Gets the cached remote url for a path, or empty string if not cached
+        /// </summary>
+        public string GetRemoteUrl(string path)
+        {
+            if (_cache.TryGetValue(path, out var entry))
+                return entry.RemoteUrl;
+            return "";
+        }
+        /// <summary>
         /// Checks if a path needs to be re-indexed
         /// </summary>
         public bool IsStale(string path)
@@ -67,15 +71,72 @@ namespace Flow.Launcher.Plugin.Codebases
         {
             var detector = CreateDetector();
             var languages = detector.Detect(path);
+            var remoteUrl = ParseGitRemoteUrl(path);
 
             _cache[path] = new LanguageCacheEntry
             {
                 Languages = languages,
+                RemoteUrl = remoteUrl,
                 DetectedAt = DateTime.UtcNow
             };
 
             _isDirty = true;
             return languages;
+        }
+
+        /// <summary>
+        /// Parses the origin remote URL from .git/config
+        /// </summary>
+        private static string ParseGitRemoteUrl(string repoPath)
+        {
+            try
+            {
+                var gitConfigPath = Path.Combine(repoPath, ".git", "config");
+                if (!File.Exists(gitConfigPath))
+                    return "";
+
+                var content = File.ReadAllText(gitConfigPath);
+
+                // Match [remote "origin"] section and extract url
+                var match = Regex.Match(content,
+                    @"\[remote\s+""origin""\].*?url\s*=\s*(.+?)(?:\r?\n|$)",
+                    RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    var url = match.Groups[1].Value.Trim();
+                    return NormalizeGitUrl(url);
+                }
+            }
+            catch
+            {
+                // Silently fail
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// Converts git URLs to browser-friendly HTTPS URLs
+        /// </summary>
+        private static string NormalizeGitUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return "";
+
+            // Convert SSH format: git@github.com:user/repo.git -> https://github.com/user/repo
+            if (url.StartsWith("git@"))
+            {
+                url = Regex.Replace(url, @"^git@([^:]+):(.+)$", "https://$1/$2");
+            }
+
+            // Remove .git suffix
+            if (url.EndsWith(".git"))
+            {
+                url = url.Substring(0, url.Length - 4);
+            }
+
+            return url;
         }
 
         /// <summary>
