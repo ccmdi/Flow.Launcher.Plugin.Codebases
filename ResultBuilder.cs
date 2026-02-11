@@ -209,12 +209,12 @@ namespace Flow.Launcher.Plugin.Codebases
                 // Record usage for sorting
                 _usageTracker.RecordOpen(path);
 
-                // Open in editor
                 var editorCommand = _settings.GetEditorCommand();
+                var arguments = BuildEditorArguments(path);
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = editorCommand,
-                    Arguments = $"\"{path}\"",
+                    Arguments = arguments,
                     UseShellExecute = true,
                     CreateNoWindow = true
                 };
@@ -315,15 +315,15 @@ namespace Flow.Launcher.Plugin.Codebases
         {
             try
             {
-                // Record usage for sorting
                 _usageTracker.RecordOpen(path);
 
                 var editorCommand = _settings.GetEditorCommand();
+                var arguments = BuildEditorArguments(path);
 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = editorCommand,
-                    Arguments = $"\"{path}\"",
+                    Arguments = arguments,
                     UseShellExecute = true,
                     CreateNoWindow = true
                 };
@@ -336,6 +336,33 @@ namespace Flow.Launcher.Plugin.Codebases
                 _context.API.ShowMsg("Error", $"Failed to open editor: {ex.Message}");
                 return false;
             }
+        }
+
+        private static string BuildEditorArguments(string path)
+        {
+            var (distro, linuxPath) = ParseWslPath(path);
+            if (distro != null)
+                return $"--remote wsl+{distro} \"{linuxPath}\"";
+            return $"\"{path}\"";
+        }
+
+        private static (string distro, string linuxPath) ParseWslPath(string path)
+        {
+            string afterPrefix;
+            if (path.StartsWith(@"\\wsl$\", StringComparison.OrdinalIgnoreCase))
+                afterPrefix = path.Substring(@"\\wsl$\".Length);
+            else if (path.StartsWith(@"\\wsl.localhost\", StringComparison.OrdinalIgnoreCase))
+                afterPrefix = path.Substring(@"\\wsl.localhost\".Length);
+            else
+                return (null, null);
+
+            var sep = afterPrefix.IndexOf('\\');
+            if (sep < 0)
+                return (afterPrefix, "/");
+
+            var distro = afterPrefix.Substring(0, sep);
+            var linuxPath = afterPrefix.Substring(sep).Replace('\\', '/');
+            return (distro, linuxPath);
         }
     }
 }
