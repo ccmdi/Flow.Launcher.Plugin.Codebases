@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Win32;
-
 namespace Flow.Launcher.Plugin.Codebases
 {
     public partial class SettingsControl : UserControl
@@ -48,9 +46,6 @@ namespace Flow.Launcher.Plugin.Codebases
                     break;
                 }
             }
-
-            // Load es.exe path
-            EsExePathTextBox.Text = _settings.EsExePath;
 
             // Load search paths (join with newlines)
             SearchPathsTextBox.Text = string.Join(Environment.NewLine, _settings.SearchPaths);
@@ -100,30 +95,6 @@ namespace Flow.Launcher.Plugin.Codebases
             {
                 _settings.SortMode = sortMode;
                 SaveSettings();
-            }
-        }
-
-        private void EsExePathTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isInitializing)
-                return;
-
-            _settings.EsExePath = EsExePathTextBox.Text.Trim();
-            SaveSettings();
-        }
-
-        private void BrowseEsExeButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*",
-                Title = "Select Everything CLI (es.exe)",
-                FileName = "es.exe"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                EsExePathTextBox.Text = dialog.FileName;
             }
         }
 

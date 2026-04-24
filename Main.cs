@@ -75,10 +75,10 @@ namespace Flow.Launcher.Plugin.Codebases
             var results = new List<Result>();
             var searchText = query.Search?.Trim() ?? string.Empty;
 
-            // Check if es.exe is available
+            // Check if Everything is running
             if (!_search.IsAvailable())
             {
-                results.Add(_resultBuilder.CreateEsNotFoundResult());
+                results.Add(_resultBuilder.CreateEverythingNotFoundResult());
                 return Task.FromResult(results);
             }
 

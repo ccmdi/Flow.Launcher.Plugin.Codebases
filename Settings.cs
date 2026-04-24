@@ -14,8 +14,6 @@ namespace Flow.Launcher.Plugin.Codebases
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         };
 
-        public string EsExePath { get; set; } = "es.exe";
-
         /// <summary>
         /// Maximum number of results to return when query is empty
         /// </summary>

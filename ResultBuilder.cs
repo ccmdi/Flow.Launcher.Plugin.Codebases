@@ -141,14 +141,14 @@ namespace Flow.Launcher.Plugin.Codebases
         }
 
         /// <summary>
-        /// Creates an error result for when es.exe is not found
+        /// Creates an error result for when Everything is not available
         /// </summary>
-        public Result CreateEsNotFoundResult()
+        public Result CreateEverythingNotFoundResult()
         {
             return new Result
             {
-                Title = "Everything CLI not found",
-                SubTitle = "Install Everything from voidtools.com and ensure es.exe is in PATH or configured",
+                Title = "Everything is not running",
+                SubTitle = "Install and run Everything from voidtools.com",
                 IcoPath = EditorIconPath,
                 Action = _ =>
                 {
