@@ -13,6 +13,7 @@ namespace Flow.Launcher.Plugin.Codebases
         private readonly PluginInitContext _context;
         private readonly UsageTracker _usageTracker;
         private static readonly Regex LangFilterRegex = new Regex(@"\blang:(\w+)\b", RegexOptions.IgnoreCase);
+        private static readonly Regex RemoteRegex = new Regex(@"(?:^|\s)--remote(?:\s|$)", RegexOptions.IgnoreCase);
 
         public ResultBuilder(Settings settings, PluginInitContext context, UsageTracker usageTracker)
         {
@@ -26,6 +27,7 @@ namespace Flow.Launcher.Plugin.Codebases
         /// <summary>
         /// Builds Flow Launcher results from search results, filtered by query
         /// Supports lang:xyz filter (e.g., "code lang:rust myproject")
+        /// Supports --remote flag (e.g., "code myproject --remote")
         /// </summary>
         public List<Result> Build(List<SearchResult> searchResults, string query)
         {
@@ -43,6 +45,13 @@ namespace Flow.Launcher.Plugin.Codebases
                 searchQuery = LangFilterRegex.Replace(searchQuery, "").Trim();
             }
 
+            // Parse --remote flag from query
+            var isRemoteMode = RemoteRegex.IsMatch(searchQuery);
+            if (isRemoteMode)
+            {
+                searchQuery = RemoteRegex.Replace(searchQuery, "").Trim();
+            }
+
             foreach (var searchResult in searchResults)
             {
                 // Apply language filter if specified - check all languages in the array
@@ -54,10 +63,14 @@ namespace Flow.Launcher.Plugin.Codebases
                         continue;
                 }
 
-                var result = CreateResult(searchResult);
+                // Skip results without remote URL when in remote mode
+                if (isRemoteMode && string.IsNullOrEmpty(searchResult.RemoteUrl))
+                    continue;
+
+                var result = CreateResult(searchResult, isRemoteMode);
                 if (result != null)
                 {
-                    // Calculate match score based on remaining query (after lang: removed)
+                    // Calculate match score based on remaining query (after lang:/--remote removed)
                     if (!string.IsNullOrWhiteSpace(searchQuery))
                     {
                         var matchResult = _context.API.FuzzySearch(searchQuery, result.Title);
@@ -70,7 +83,7 @@ namespace Flow.Launcher.Plugin.Codebases
                     }
                     else
                     {
-                        // No text query - return all results (that passed lang filter)
+                        // No text query - return all results (that passed filters)
                         results.Add(result);
                     }
                 }
@@ -128,14 +141,14 @@ namespace Flow.Launcher.Plugin.Codebases
         }
 
         /// <summary>
-        /// Creates an error result for when es.exe is not found
+        /// Creates an error result for when Everything is not available
         /// </summary>
-        public Result CreateEsNotFoundResult()
+        public Result CreateEverythingNotFoundResult()
         {
             return new Result
             {
-                Title = "Everything CLI not found",
-                SubTitle = "Install Everything from voidtools.com and ensure es.exe is in PATH or configured",
+                Title = "Everything is not running",
+                SubTitle = "Install and run Everything from voidtools.com",
                 IcoPath = EditorIconPath,
                 Action = _ =>
                 {
@@ -156,15 +169,20 @@ namespace Flow.Launcher.Plugin.Codebases
         /// </summary>
         public Result CreateNoResultsResult(string query)
         {
+            // Strip filters from query before using as codebase name
+            var cleanQuery = query ?? "";
+            cleanQuery = LangFilterRegex.Replace(cleanQuery, "").Trim();
+            cleanQuery = RemoteRegex.Replace(cleanQuery, "").Trim();
+
             // If there's a query and a default location is set, offer to create
-            if (!string.IsNullOrWhiteSpace(query) &&
+            if (!string.IsNullOrWhiteSpace(cleanQuery) &&
                 !string.IsNullOrWhiteSpace(_settings.DefaultNewCodebaseLocation) &&
                 Directory.Exists(_settings.DefaultNewCodebaseLocation))
             {
-                var newPath = Path.Combine(_settings.DefaultNewCodebaseLocation, query);
+                var newPath = Path.Combine(_settings.DefaultNewCodebaseLocation, cleanQuery);
                 return new Result
                 {
-                    Title = $"Create '{query}'",
+                    Title = $"Create '{cleanQuery}'",
                     SubTitle = newPath,
                     IcoPath = EditorIconPath,
                     Action = _ => CreateAndOpenCodebase(newPath)
@@ -191,12 +209,12 @@ namespace Flow.Launcher.Plugin.Codebases
                 // Record usage for sorting
                 _usageTracker.RecordOpen(path);
 
-                // Open in editor
                 var editorCommand = _settings.GetEditorCommand();
+                var arguments = BuildEditorArguments(path);
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = editorCommand,
-                    Arguments = $"\"{path}\"",
+                    Arguments = arguments,
                     UseShellExecute = true,
                     CreateNoWindow = true
                 };
@@ -211,11 +229,10 @@ namespace Flow.Launcher.Plugin.Codebases
             }
         }
 
-        private Result CreateResult(SearchResult searchResult)
+        private Result CreateResult(SearchResult searchResult, bool isRemote = false)
         {
             string title;
             string subTitle;
-            string targetPath;
             string iconPath;
 
             switch (searchResult.Type)
@@ -223,14 +240,23 @@ namespace Flow.Launcher.Plugin.Codebases
                 case SearchResultType.GitRepository:
                     // For git repos, title is folder name, path is to folder
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
-                    targetPath = searchResult.Path;
-                    // Show all languages in subtitle if known
-                    var langDisplay = searchResult.PrimaryLanguage != Languages.Unknown
-                        ? string.Join(", ", searchResult.Languages)
-                        : null;
-                    subTitle = langDisplay != null
-                        ? $"{searchResult.Path} • {langDisplay}"
-                        : searchResult.Path;
+
+                    if (isRemote && !string.IsNullOrEmpty(searchResult.RemoteUrl))
+                    {
+                        // Remote mode: show remote URL in subtitle
+                        subTitle = searchResult.RemoteUrl;
+                    }
+                    else
+                    {
+                        // Normal mode: show path and languages
+                        var langDisplay = searchResult.PrimaryLanguage != Languages.Unknown
+                            ? string.Join(", ", searchResult.Languages)
+                            : null;
+                        subTitle = langDisplay != null
+                            ? $"{searchResult.Path} • {langDisplay}"
+                            : searchResult.Path;
+                    }
+
                     // Use custom icon if available, otherwise primary language icon
                     iconPath = !string.IsNullOrEmpty(searchResult.CustomIconPath)
                         ? searchResult.CustomIconPath
@@ -241,7 +267,6 @@ namespace Flow.Launcher.Plugin.Codebases
                     // For workspaces, title is filename, path is to file
                     title = Path.GetFileName(searchResult.Path) ?? searchResult.Path;
                     subTitle = searchResult.Path;
-                    targetPath = searchResult.Path;
                     // Use editor icon for workspaces
                     iconPath = EditorIconPath;
                     break;
@@ -255,24 +280,50 @@ namespace Flow.Launcher.Plugin.Codebases
                 Title = title,
                 SubTitle = subTitle,
                 IcoPath = iconPath,
-                Action = _ => OpenInEditor(targetPath),
+                Action = HandleAction(searchResult, isRemote),
                 ContextData = searchResult
             };
+        }
+
+        private Func<ActionContext, bool> HandleAction(SearchResult searchResult, bool isRemote = false)
+        {
+            if(isRemote)
+            {
+                return _ => OpenInBrowser(searchResult.RemoteUrl);
+            }
+            else
+            {
+                return _ => OpenInEditor(searchResult.Path);
+            }
+        }
+
+        private bool OpenInBrowser(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _context.API.ShowMsg("Error", $"Failed to open browser: {ex.Message}");
+                return false;
+            }
         }
 
         private bool OpenInEditor(string path)
         {
             try
             {
-                // Record usage for sorting
                 _usageTracker.RecordOpen(path);
 
                 var editorCommand = _settings.GetEditorCommand();
+                var arguments = BuildEditorArguments(path);
 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = editorCommand,
-                    Arguments = $"\"{path}\"",
+                    Arguments = arguments,
                     UseShellExecute = true,
                     CreateNoWindow = true
                 };
@@ -285,6 +336,33 @@ namespace Flow.Launcher.Plugin.Codebases
                 _context.API.ShowMsg("Error", $"Failed to open editor: {ex.Message}");
                 return false;
             }
+        }
+
+        private static string BuildEditorArguments(string path)
+        {
+            var (distro, linuxPath) = ParseWslPath(path);
+            if (distro != null)
+                return $"--remote wsl+{distro} \"{linuxPath}\"";
+            return $"\"{path}\"";
+        }
+
+        private static (string distro, string linuxPath) ParseWslPath(string path)
+        {
+            string afterPrefix;
+            if (path.StartsWith(@"\\wsl$\", StringComparison.OrdinalIgnoreCase))
+                afterPrefix = path.Substring(@"\\wsl$\".Length);
+            else if (path.StartsWith(@"\\wsl.localhost\", StringComparison.OrdinalIgnoreCase))
+                afterPrefix = path.Substring(@"\\wsl.localhost\".Length);
+            else
+                return (null, null);
+
+            var sep = afterPrefix.IndexOf('\\');
+            if (sep < 0)
+                return (afterPrefix, "/");
+
+            var distro = afterPrefix.Substring(0, sep);
+            var linuxPath = afterPrefix.Substring(sep).Replace('\\', '/');
+            return (distro, linuxPath);
         }
     }
 }

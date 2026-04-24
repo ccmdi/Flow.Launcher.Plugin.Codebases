@@ -3,18 +3,6 @@ using System.Collections.Generic;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public enum Editor
-    {
-        Cursor,
-        VSCode
-    }
-
-    public enum SortMode
-    {
-        GitModified,
-        LastOpened
-    }
-
     public class Settings
     {
         public Editor Editor { get; set; } = Editor.Cursor;
@@ -25,8 +13,6 @@ namespace Flow.Launcher.Plugin.Codebases
         {
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         };
-
-        public string EsExePath { get; set; } = "es.exe";
 
         /// <summary>
         /// Maximum number of results to return when query is empty

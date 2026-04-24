@@ -6,11 +6,6 @@ using System.Text.Json;
 
 namespace Flow.Launcher.Plugin.Codebases
 {
-    public class UsageCacheEntry
-    {
-        public DateTime LastOpenedAt { get; set; }
-    }
-
     public class UsageTracker
     {
         private readonly string _cachePath;

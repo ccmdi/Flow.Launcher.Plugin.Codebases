@@ -33,28 +33,6 @@
             <ComboBoxItem Content="Last Opened" Tag="LastOpened"/>
         </ComboBox>
 
-        <!-- es.exe Path -->
-        <TextBlock Text="Everything CLI Path (es.exe)" FontWeight="Bold" Margin="0,0,0,5"/>
-        <TextBlock Text="Leave as 'es.exe' if it's in your PATH"
-                   FontSize="11"
-                   Foreground="Gray"
-                   Margin="0,0,0,5"/>
-        <Grid Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBox x:Name="EsExePathTextBox"
-                     Grid.Column="0"
-                     TextChanged="EsExePathTextBox_TextChanged"/>
-            <Button x:Name="BrowseEsExeButton"
-                    Grid.Column="1"
-                    Content="Browse..."
-                    Padding="10,5"
-                    Margin="5,0,0,0"
-                    Click="BrowseEsExeButton_Click"/>
-        </Grid>
-
         <!-- Search Paths -->
         <TextBlock Text="Search Paths" FontWeight="Bold" Margin="0,0,0,5"/>
         <TextBlock Text="Directories to search for codebases (one per line)"
