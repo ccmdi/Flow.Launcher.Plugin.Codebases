@@ -85,7 +85,7 @@ namespace Flow.Launcher.Plugin.Codebases
             // Get cached results (triggers background refresh if stale)
             var searchResults = _searchCache.GetResults();
 
-            // Enrich with language info from cache
+            // Enrich with language info from cache (never blocks on detection)
             foreach (var result in searchResults)
             {
                 if (token.IsCancellationRequested)
@@ -93,18 +93,8 @@ namespace Flow.Launcher.Plugin.Codebases
 
                 if (result.Type == SearchResultType.GitRepository)
                 {
-                    var cachedLanguages = _languageCache.GetLanguages(result.Path);
-                    if (cachedLanguages.Length > 0 && cachedLanguages[0] != Languages.Unknown)
-                    {
-                        result.Languages = cachedLanguages;
-                    }
-                    else if (_languageCache.IsStale(result.Path))
-                    {
-                        // Detect synchronously for uncached repos (first time)
-                        result.Languages = _languageCache.DetectAndCache(result.Path);
-                    }
+                    result.Languages = _languageCache.GetLanguages(result.Path);
 
-                    // Always get the (potentially freshly cached) remote URL
                     var remoteUrl = _languageCache.GetRemoteUrl(result.Path);
                     if (!string.IsNullOrEmpty(remoteUrl))
                     {
